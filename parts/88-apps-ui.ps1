@@ -1,6 +1,6 @@
 ﻿#region Recommended apps
 # «Открыть сайт» — официальный сайт в браузере; «Установить» — winget, если у программы есть пакет.
-# Adv = $true — для опытных (жёлтая полоска).
+# Adv = $true — для опытных (жёлтая полоска). Kind — своя подпись над названием (например, ограничение лицензии).
 $AppCatalog = [ordered]@{
     'На каждый день' = @(
         @{ Name = '7-Zip'; Url = 'https://www.7-zip.org/'
@@ -29,8 +29,8 @@ $AppCatalog = [ordered]@{
     'Проверка на вирусы' = @(
         @{ Name = 'Kaspersky Virus Removal Tool'; Url = 'https://www.kaspersky.ru/downloads/free-virus-removal-tool'
            Desc = 'Разовая проверка компьютера на вирусы. Установка не нужна, с обычным антивирусом не конфликтует.' }
-        @{ Name = 'Dr.Web CureIt!'; Url = 'https://free.drweb.ru/cureit/'
-           Desc = 'Ещё один бесплатный разовый сканер. Хорошо подходит как второе мнение после другого антивируса.' }
+        @{ Name = 'Dr.Web CureIt!'; Url = 'https://free.drweb.ru/cureit/'; Kind = 'БЕСПЛАТНО ДЛЯ ДОМА'
+           Desc = 'Ещё один разовый сканер, хорошо подходит как второе мнение после другого антивируса. Бесплатен только для домашнего использования, для организаций — платная лицензия.' }
         @{ Name = 'AdwCleaner'; Url = 'https://www.malwarebytes.com/ru/adwcleaner'
            Desc = 'Убирает рекламное ПО, навязанные панели в браузере и подменённую стартовую страницу. Обычные антивирусы такое часто пропускают.' }
     )
@@ -40,9 +40,10 @@ $WinGetIds = @{ '7-Zip' = '7zip.7zip'; 'Notepad++' = 'Notepad++.Notepad++'; 'Eve
                 'HiBit Uninstaller' = 'HiBitSoftware.HiBitUninstaller'; 'SpaceSniffer' = 'UderzoSoftware.SpaceSniffer'
                 'DriverStore Explorer' = 'lostindark.DriverStoreExplorer'; 'AdwCleaner' = 'Malwarebytes.AdwCleaner' }
 function Install-App([string]$id) {
-    # отдельное окно консоли: видно ход установки, OknoTune не зависает
+    # отдельное окно консоли: видно ход установки, OknoTune не зависает.
+    # Без --accept-*-agreements: условия лицензии winget покажет в окне, соглашается сам пользователь.
     Write-Log "Устанавливаю через winget: $id"
-    Start-Process cmd.exe -ArgumentList "/c title OknoTune: установка $id & winget install --id $id -e --accept-source-agreements --accept-package-agreements & echo. & pause"
+    Start-Process cmd.exe -ArgumentList "/c title OknoTune: установка $id & winget install --id $id -e & echo. & pause"
 }
 function Build-Apps {
     $script:AppsList.Children.Clear()
@@ -53,7 +54,7 @@ function Build-Apps {
         [void]$script:AppsList.Children.Add($h)
         foreach ($a in $AppCatalog[$cat]) {
             $card = New-Xaml $DrvXaml
-            $card.FindName('K').Text = $(if ($a.Adv) { 'ДЛЯ ОПЫТНЫХ' } else { 'БЕСПЛАТНО' })
+            $card.FindName('K').Text = $(if ($a.Kind) { $a.Kind } elseif ($a.Adv) { 'ДЛЯ ОПЫТНЫХ' } else { 'БЕСПЛАТНО' })
             $card.FindName('T').Text = $a.Name
             $card.FindName('D').Text = $a.Desc
             $card.FindName('Stripe').Background = Brush $(if ($a.Adv) { '#D29922' } else { '#3FB950' })
