@@ -397,3 +397,47 @@ function Import-Profile {
     Write-Log "Профиль загружен: отмечено настроек $n. Проверьте и нажмите «Проверить и применить»"
 }
 #endregion
+
+#region Feedback: Google Form, заполненная заранее; отправляет сам пользователь
+$FeedbackForm = 'https://docs.google.com/forms/d/e/1FAIpQLSccuidwtiVW_wYU4d-Fho5KH2bjUJKghmrY3M7iF6exg0-YpQ/viewform'
+$FeedbackFields = @{ Section = 'entry.1250054791'; Version = 'entry.1466109807'; Windows = 'entry.859605807'; Log = 'entry.1585251946' }
+function Get-AnonLog([int]$lines = 300) {
+    # журнал без имени пользователя и компьютера
+    if (-not (Test-Path $script:LogFile)) { return '' }
+    $t = @(Get-Content -Path $script:LogFile -Tail $lines -Encoding UTF8) -join "`n"
+    if ($env:USERPROFILE) { $t = $t -replace [regex]::Escape($env:USERPROFILE), '%USERPROFILE%' }
+    if ($env:USERNAME) { $t = $t -replace "(?i)(?<!\w)$([regex]::Escape($env:USERNAME))(?!\w)", '<user>' }
+    if ($env:COMPUTERNAME) { $t = $t -replace "(?i)(?<!\w)$([regex]::Escape($env:COMPUTERNAME))(?!\w)", '<pc>' }
+    $t
+}
+function Get-WinLabel {
+    $cv = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -ErrorAction SilentlyContinue
+    "$((Get-CimInstance Win32_OperatingSystem).Caption) $($cv.DisplayVersion) (сборка $($cv.CurrentBuild).$($cv.UBR))".Trim()
+}
+function Get-ReportUrl([string]$log) {
+    # раздел — по текущей вкладке; значения должны совпадать с пунктами списка в форме
+    $section = switch ($script:CurView) { { $_ -in 'home', 'wizard' } { 'Главное окно' } 'list' { 'Настройки' }
+        { $_ -in 'clean', 'startup', 'drivers', 'fixes', 'apps' } { 'Инструменты' } default { 'Другое' } }
+    $q = "usp=pp_url&$($FeedbackFields.Section)=$([Uri]::EscapeDataString($section))&$($FeedbackFields.Version)=$([Uri]::EscapeDataString($script:Version))&$($FeedbackFields.Windows)=$([Uri]::EscapeDataString((Get-WinLabel)))"
+    # в ссылку — только конец журнала: длину адреса ограничивает браузер; полный журнал уходит в буфер обмена
+    $tail = @($log -split "`n"); $take = $tail.Count
+    while ($take -gt 0 -and [Uri]::EscapeDataString(($tail[-$take..-1] -join "`n")).Length -gt 4000) { $take-- }
+    if ($take -gt 0) { $q += "&$($FeedbackFields.Log)=$([Uri]::EscapeDataString(($tail[-$take..-1] -join "`n")))" }
+    "$FeedbackForm`?$q"
+}
+function Confirm-Report {
+    Show-Overlay 'Сообщить о проблеме' 'Откроется Google Форма. Входить в Google не нужно, отправляете вы сами.'
+    Add-OvLine 'Уже заполнено' '  — версия OknoTune, Windows, раздел программы и последние строки журнала.' '#4F8CFF'
+    Add-OvLine 'Журнал целиком скопируется в буфер обмена' '  — если в форме не все строки, вставьте его в поле «Журнал» (Ctrl+V).' '#D29922'
+    Add-OvLine 'Имя пользователя и компьютера' '  — в журнале заменены на <user> и <pc>.' '#3FB950'
+    Add-OvButton 'Отмена' { Hide-Overlay } $null
+    Add-OvButton 'Открыть форму' { Open-Report } $null 'Primary'
+}
+function Open-Report {
+    $log = Get-AnonLog
+    try { if ($log) { [Windows.Clipboard]::SetText($log) } } catch {}
+    Open-Url (Get-ReportUrl $log)
+    Write-Log 'Открыта форма обратной связи'
+    Hide-Overlay
+}
+#endregion

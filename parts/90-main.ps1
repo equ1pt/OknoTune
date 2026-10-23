@@ -16,7 +16,7 @@
     $script:RebootPending = (Test-Path $script:RebootFile) -and ((Get-Content $script:RebootFile -Raw).Trim() -eq (Get-BootTicks))
     if (-not $script:RebootPending) { Remove-Item $script:RebootFile -ErrorAction SilentlyContinue }
     $os = Get-CimInstance Win32_OperatingSystem
-    $script:SysInfo.Text = "$($os.Caption)`nсборка $($os.BuildNumber)  ·  $env:USERNAME"
+    $script:SysInfo.Text = "OknoTune $script:Version`n$($os.Caption)`nсборка $($os.BuildNumber)  ·  $env:USERNAME"
     $script:Loading.Visibility = 'Collapsed'
     Reset-Toggles; Update-Pending
     Select-Nav 'home'
@@ -46,6 +46,7 @@ $script:BtnManual.Add_Click({ Select-Nav 'Все' })
 $script:WizBack.Add_Click({ Select-Nav 'home' })
 $script:WizNext.Add_Click({ Complete-Wizard })
 $script:BtnLog.Add_Click({ Start-Process explorer.exe $script:DataDir })
+$script:BtnReport.Add_Click({ Confirm-Report })
 $script:BtnClean.Add_Click({ Confirm-Clean })
 $script:BtnRescan.Add_Click({ Update-CleanSizes })
 $script:BtnCleanMgr.Add_Click({ Start-Process cleanmgr.exe })
@@ -86,6 +87,7 @@ function Finish-Startup {
             'apps'    { Select-Nav 'apps' }
             'fixes'   { Select-Nav 'fixes' }
             'welcome' { Show-Welcome }
+            'report'  { Confirm-Report }
             'wizard'  { Start-Wizard }
             'review'  { Start-Wizard; $script:QRadios['privacy']['yes'].IsChecked = $true; $script:QRadios['games']['yes'].IsChecked = $true; Complete-Wizard }
         }

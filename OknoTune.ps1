@@ -6,6 +6,7 @@
 #>
 param([switch]$Selftest, [string]$Snapshot, [string]$View = 'home')
 
+$script:Version = '0.1.4'   # меняется при каждом релизе (тег vX.Y.Z)
 $ErrorActionPreference = 'Continue'
 $IsAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $IsAdmin -and -not $Selftest -and -not $Snapshot) {
@@ -1291,6 +1292,7 @@ $Xaml = @'
     </StackPanel>
     <StackPanel DockPanel.Dock="Bottom" Margin="8,10,0,0">
      <TextBlock x:Name="SysInfo" Foreground="#5F6774" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,10"/>
+     <Button x:Name="BtnReport" Content="Сообщить о проблеме" Style="{StaticResource Btn}" HorizontalAlignment="Left" FontSize="12" Padding="12,6" Margin="0,0,0,6" ToolTip="Открыть форму обратной связи: версия программы, Windows и журнал заполнятся сами"/>
      <Button x:Name="BtnLog" Content="Папка журнала" Style="{StaticResource Btn}" HorizontalAlignment="Left" FontSize="12" Padding="12,6"/>
     </StackPanel>
     <ListBox x:Name="Nav" Background="Transparent" BorderThickness="0" ItemContainerStyle="{StaticResource Nav}" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Auto"/>
@@ -1659,7 +1661,7 @@ foreach ($n in 'Nav', 'SysInfo', 'BtnLog', 'HomeView', 'HomeCount', 'HomeBar', '
                'Overlay', 'OvTitle', 'OvSub', 'OvBody', 'OvProgress', 'OvLeft', 'OvButtons',
                'CleanView', 'CleanTotal', 'CleanDisk', 'CleanList', 'CleanStatus', 'BtnCleanMgr', 'BtnRescan', 'BtnClean',
                'StartupView', 'SuSummary', 'SuList', 'SuStatus', 'BtnSuRescan', 'BtnSuApply',
-               'DriversView', 'DrvList', 'DrvStatus', 'BtnWuDrivers', 'BtnDevMgr', 'BtnDrvRescan', 'AppsView', 'AppsList', 'FixView', 'FixList', 'BtnProfSave', 'BtnProfLoad', 'Busy', 'BusyText', 'BusyBar', 'CleanBar') {
+               'DriversView', 'DrvList', 'DrvStatus', 'BtnWuDrivers', 'BtnDevMgr', 'BtnDrvRescan', 'AppsView', 'AppsList', 'FixView', 'FixList', 'BtnProfSave', 'BtnProfLoad', 'Busy', 'BusyText', 'BusyBar', 'CleanBar', 'BtnReport') {
     Set-Variable -Scope Script -Name $n -Value $script:Win.FindName($n)
 }
 $script:Styles = @{}
@@ -2194,6 +2196,50 @@ function Import-Profile {
     }
     Update-Pending; Update-View
     Write-Log "Профиль загружен: отмечено настроек $n. Проверьте и нажмите «Проверить и применить»"
+}
+#endregion
+
+#region Feedback: Google Form, заполненная заранее; отправляет сам пользователь
+$FeedbackForm = 'https://docs.google.com/forms/d/e/1FAIpQLSccuidwtiVW_wYU4d-Fho5KH2bjUJKghmrY3M7iF6exg0-YpQ/viewform'
+$FeedbackFields = @{ Section = 'entry.1250054791'; Version = 'entry.1466109807'; Windows = 'entry.859605807'; Log = 'entry.1585251946' }
+function Get-AnonLog([int]$lines = 300) {
+    # журнал без имени пользователя и компьютера
+    if (-not (Test-Path $script:LogFile)) { return '' }
+    $t = @(Get-Content -Path $script:LogFile -Tail $lines -Encoding UTF8) -join "`n"
+    if ($env:USERPROFILE) { $t = $t -replace [regex]::Escape($env:USERPROFILE), '%USERPROFILE%' }
+    if ($env:USERNAME) { $t = $t -replace "(?i)(?<!\w)$([regex]::Escape($env:USERNAME))(?!\w)", '<user>' }
+    if ($env:COMPUTERNAME) { $t = $t -replace "(?i)(?<!\w)$([regex]::Escape($env:COMPUTERNAME))(?!\w)", '<pc>' }
+    $t
+}
+function Get-WinLabel {
+    $cv = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -ErrorAction SilentlyContinue
+    "$((Get-CimInstance Win32_OperatingSystem).Caption) $($cv.DisplayVersion) (сборка $($cv.CurrentBuild).$($cv.UBR))".Trim()
+}
+function Get-ReportUrl([string]$log) {
+    # раздел — по текущей вкладке; значения должны совпадать с пунктами списка в форме
+    $section = switch ($script:CurView) { { $_ -in 'home', 'wizard' } { 'Главное окно' } 'list' { 'Настройки' }
+        { $_ -in 'clean', 'startup', 'drivers', 'fixes', 'apps' } { 'Инструменты' } default { 'Другое' } }
+    $q = "usp=pp_url&$($FeedbackFields.Section)=$([Uri]::EscapeDataString($section))&$($FeedbackFields.Version)=$([Uri]::EscapeDataString($script:Version))&$($FeedbackFields.Windows)=$([Uri]::EscapeDataString((Get-WinLabel)))"
+    # в ссылку — только конец журнала: длину адреса ограничивает браузер; полный журнал уходит в буфер обмена
+    $tail = @($log -split "`n"); $take = $tail.Count
+    while ($take -gt 0 -and [Uri]::EscapeDataString(($tail[-$take..-1] -join "`n")).Length -gt 4000) { $take-- }
+    if ($take -gt 0) { $q += "&$($FeedbackFields.Log)=$([Uri]::EscapeDataString(($tail[-$take..-1] -join "`n")))" }
+    "$FeedbackForm`?$q"
+}
+function Confirm-Report {
+    Show-Overlay 'Сообщить о проблеме' 'Откроется Google Форма. Входить в Google не нужно, отправляете вы сами.'
+    Add-OvLine 'Уже заполнено' '  — версия OknoTune, Windows, раздел программы и последние строки журнала.' '#4F8CFF'
+    Add-OvLine 'Журнал целиком скопируется в буфер обмена' '  — если в форме не все строки, вставьте его в поле «Журнал» (Ctrl+V).' '#D29922'
+    Add-OvLine 'Имя пользователя и компьютера' '  — в журнале заменены на <user> и <pc>.' '#3FB950'
+    Add-OvButton 'Отмена' { Hide-Overlay } $null
+    Add-OvButton 'Открыть форму' { Open-Report } $null 'Primary'
+}
+function Open-Report {
+    $log = Get-AnonLog
+    try { if ($log) { [Windows.Clipboard]::SetText($log) } } catch {}
+    Open-Url (Get-ReportUrl $log)
+    Write-Log 'Открыта форма обратной связи'
+    Hide-Overlay
 }
 #endregion
 
@@ -2810,7 +2856,7 @@ function Initialize-Ui {
     $script:RebootPending = (Test-Path $script:RebootFile) -and ((Get-Content $script:RebootFile -Raw).Trim() -eq (Get-BootTicks))
     if (-not $script:RebootPending) { Remove-Item $script:RebootFile -ErrorAction SilentlyContinue }
     $os = Get-CimInstance Win32_OperatingSystem
-    $script:SysInfo.Text = "$($os.Caption)`nсборка $($os.BuildNumber)  ·  $env:USERNAME"
+    $script:SysInfo.Text = "OknoTune $script:Version`n$($os.Caption)`nсборка $($os.BuildNumber)  ·  $env:USERNAME"
     $script:Loading.Visibility = 'Collapsed'
     Reset-Toggles; Update-Pending
     Select-Nav 'home'
@@ -2840,6 +2886,7 @@ $script:BtnManual.Add_Click({ Select-Nav 'Все' })
 $script:WizBack.Add_Click({ Select-Nav 'home' })
 $script:WizNext.Add_Click({ Complete-Wizard })
 $script:BtnLog.Add_Click({ Start-Process explorer.exe $script:DataDir })
+$script:BtnReport.Add_Click({ Confirm-Report })
 $script:BtnClean.Add_Click({ Confirm-Clean })
 $script:BtnRescan.Add_Click({ Update-CleanSizes })
 $script:BtnCleanMgr.Add_Click({ Start-Process cleanmgr.exe })
@@ -2880,6 +2927,7 @@ function Finish-Startup {
             'apps'    { Select-Nav 'apps' }
             'fixes'   { Select-Nav 'fixes' }
             'welcome' { Show-Welcome }
+            'report'  { Confirm-Report }
             'wizard'  { Start-Wizard }
             'review'  { Start-Wizard; $script:QRadios['privacy']['yes'].IsChecked = $true; $script:QRadios['games']['yes'].IsChecked = $true; Complete-Wizard }
         }

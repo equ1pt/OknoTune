@@ -136,6 +136,7 @@ $Xaml = @'
     </StackPanel>
     <StackPanel DockPanel.Dock="Bottom" Margin="8,10,0,0">
      <TextBlock x:Name="SysInfo" Foreground="#5F6774" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,10"/>
+     <Button x:Name="BtnReport" Content="Сообщить о проблеме" Style="{StaticResource Btn}" HorizontalAlignment="Left" FontSize="12" Padding="12,6" Margin="0,0,0,6" ToolTip="Открыть форму обратной связи: версия программы, Windows и журнал заполнятся сами"/>
      <Button x:Name="BtnLog" Content="Папка журнала" Style="{StaticResource Btn}" HorizontalAlignment="Left" FontSize="12" Padding="12,6"/>
     </StackPanel>
     <ListBox x:Name="Nav" Background="Transparent" BorderThickness="0" ItemContainerStyle="{StaticResource Nav}" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Auto"/>
@@ -504,7 +505,7 @@ foreach ($n in 'Nav', 'SysInfo', 'BtnLog', 'HomeView', 'HomeCount', 'HomeBar', '
                'Overlay', 'OvTitle', 'OvSub', 'OvBody', 'OvProgress', 'OvLeft', 'OvButtons',
                'CleanView', 'CleanTotal', 'CleanDisk', 'CleanList', 'CleanStatus', 'BtnCleanMgr', 'BtnRescan', 'BtnClean',
                'StartupView', 'SuSummary', 'SuList', 'SuStatus', 'BtnSuRescan', 'BtnSuApply',
-               'DriversView', 'DrvList', 'DrvStatus', 'BtnWuDrivers', 'BtnDevMgr', 'BtnDrvRescan', 'AppsView', 'AppsList', 'FixView', 'FixList', 'BtnProfSave', 'BtnProfLoad', 'Busy', 'BusyText', 'BusyBar', 'CleanBar') {
+               'DriversView', 'DrvList', 'DrvStatus', 'BtnWuDrivers', 'BtnDevMgr', 'BtnDrvRescan', 'AppsView', 'AppsList', 'FixView', 'FixList', 'BtnProfSave', 'BtnProfLoad', 'Busy', 'BusyText', 'BusyBar', 'CleanBar', 'BtnReport') {
     Set-Variable -Scope Script -Name $n -Value $script:Win.FindName($n)
 }
 $script:Styles = @{}
