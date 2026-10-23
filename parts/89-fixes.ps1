@@ -87,7 +87,7 @@ function Get-DnsState {
     foreach ($a in Get-DnsAdapters) {
         $v4 = Get-RegRaw "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\$($a.InterfaceGuid)" 'NameServer'
         $v6 = Get-RegRaw "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters\Interfaces\$($a.InterfaceGuid)" 'NameServer'
-        [pscustomobject]@{ Idx = $a.ifIndex; Name = $a.Name; Servers = @("$(if ($v4) { $v4.Value }) $(if ($v6) { $v6.Value })" -split '[,\s]+' | Where-Object { $_ }) }
+        [pscustomobject]@{ Idx = $a.ifIndex; Name = $a.Name; Servers = @("$(if ($v4) { $v4.Value }) $(if ($v6) { $v6.Value })" -split '[,\s\x00]+' | Where-Object { $_ }) }   # в NameServer бывают хвостовые \0
     }
 }
 function Set-AdapterDns([int]$idx, $servers) {
