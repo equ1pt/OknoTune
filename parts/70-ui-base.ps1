@@ -316,7 +316,7 @@ $Xaml = @'
     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
     <StackPanel Margin="40,30,40,14">
      <TextBlock Text="Драйверы" FontSize="26" FontWeight="SemiBold"/>
-     <TextBlock Text="OknoTune ничего не скачивает сам: он определяет железо, показывает возраст драйверов и открывает нужную страницу производителя в браузере." Foreground="#8B93A1" FontSize="13" Margin="0,6,0,0" TextWrapping="Wrap"/>
+     <TextBlock Text="OknoTune ничего не скачивает сам: он определяет железо, показывает возраст драйверов и открывает страницу в браузере. Надёжнее всего — сайт производителя. driver.ru и поиск Google — неофициальные источники: скачивайте оттуда только если на сайте производителя драйвера нет, и проверяйте файл антивирусом." Foreground="#8B93A1" FontSize="13" Margin="0,6,0,0" TextWrapping="Wrap"/>
     </StackPanel>
     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="40,0,32,12">
      <StackPanel x:Name="DrvList" MaxWidth="900" HorizontalAlignment="Stretch"/>

@@ -1060,7 +1060,8 @@ function Get-HwId($ids) {
 }
 function Get-FindButtons([string]$hw, [string]$name) {
     $google = @('Поиск в Google', (Get-SearchUrl $(if ($hw) { "$hw driver" } else { "$name driver" })))
-    if ($hw) { @(@('Найти на driver.ru', ('https://driver.ru/Search/' + [Uri]::EscapeDataString($hw))), $google) } else { @(, $google) }
+    # driver.ru — неофициальный каталог: подпись говорит об этом прямо, сайт производителя надёжнее
+    if ($hw) { @(@('driver.ru (неофициальный)', ('https://driver.ru/Search/' + [Uri]::EscapeDataString($hw))), $google) } else { @(, $google) }
 }
 $VendorSites = @(
     @{ Rx = 'ASUS'; Name = 'ASUS'; Url = 'https://www.asus.com/ru/support/download-center/'; Site = 'asus.com' }
@@ -1472,7 +1473,7 @@ $Xaml = @'
     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
     <StackPanel Margin="40,30,40,14">
      <TextBlock Text="Драйверы" FontSize="26" FontWeight="SemiBold"/>
-     <TextBlock Text="OknoTune ничего не скачивает сам: он определяет железо, показывает возраст драйверов и открывает нужную страницу производителя в браузере." Foreground="#8B93A1" FontSize="13" Margin="0,6,0,0" TextWrapping="Wrap"/>
+     <TextBlock Text="OknoTune ничего не скачивает сам: он определяет железо, показывает возраст драйверов и открывает страницу в браузере. Надёжнее всего — сайт производителя. driver.ru и поиск Google — неофициальные источники: скачивайте оттуда только если на сайте производителя драйвера нет, и проверяйте файл антивирусом." Foreground="#8B93A1" FontSize="13" Margin="0,6,0,0" TextWrapping="Wrap"/>
     </StackPanel>
     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="40,0,32,12">
      <StackPanel x:Name="DrvList" MaxWidth="900" HorizontalAlignment="Stretch"/>
@@ -2231,6 +2232,7 @@ function Confirm-Report {
     Add-OvLine 'Уже заполнено' '  — версия OknoTune, Windows, раздел программы и последние строки журнала.' '#4F8CFF'
     Add-OvLine 'Журнал целиком скопируется в буфер обмена' '  — если в форме не все строки, вставьте его в поле «Журнал» (Ctrl+V).' '#D29922'
     Add-OvLine 'Имя пользователя и компьютера' '  — в журнале заменены на <user> и <pc>.' '#3FB950'
+    Add-OvLine 'Не пишите личные данные' '  — имя, телефон, почту, адрес. Ответ на заявку будет в описании нового релиза.' '#F85149'
     Add-OvButton 'Отмена' { Hide-Overlay } $null
     Add-OvButton 'Открыть форму' { Open-Report } $null 'Primary'
 }

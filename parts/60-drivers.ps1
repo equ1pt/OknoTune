@@ -15,7 +15,8 @@ function Get-HwId($ids) {
 }
 function Get-FindButtons([string]$hw, [string]$name) {
     $google = @('Поиск в Google', (Get-SearchUrl $(if ($hw) { "$hw driver" } else { "$name driver" })))
-    if ($hw) { @(@('Найти на driver.ru', ('https://driver.ru/Search/' + [Uri]::EscapeDataString($hw))), $google) } else { @(, $google) }
+    # driver.ru — неофициальный каталог: подпись говорит об этом прямо, сайт производителя надёжнее
+    if ($hw) { @(@('driver.ru (неофициальный)', ('https://driver.ru/Search/' + [Uri]::EscapeDataString($hw))), $google) } else { @(, $google) }
 }
 $VendorSites = @(
     @{ Rx = 'ASUS'; Name = 'ASUS'; Url = 'https://www.asus.com/ru/support/download-center/'; Site = 'asus.com' }
