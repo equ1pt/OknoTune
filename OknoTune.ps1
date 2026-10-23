@@ -2,7 +2,7 @@
   OknoTune — настройка Windows с откатом.
   Запуск: OknoTune.cmd (или powershell -ExecutionPolicy Bypass -File OknoTune.ps1)
   -Selftest                проверить состояние без окна и без изменений
-  -Snapshot a.png [-View]  отрисовать экран в PNG и выйти (home|wizard|review|list|history|clean|startup|drivers|apps), без изменений
+  -Snapshot a.png [-View]  отрисовать экран в PNG и выйти (home|wizard|review|list|history|clean|startup|drivers|apps|fixes|welcome), без изменений
 #>
 param([switch]$Selftest, [string]$Snapshot, [string]$View = 'home')
 
@@ -2714,9 +2714,21 @@ $script:Win.Add_SourceInitialized({
     $v = 1; [void][WT.Native]::DwmSetWindowAttribute($h, 20, [ref]$v, 4)          # dark title bar
     $c = 0x0015110F; [void][WT.Native]::DwmSetWindowAttribute($h, 35, [ref]$c, 4)  # caption color (Win11)
 })
+$script:AcceptFile = Join-Path $script:DataDir 'accepted.txt'
+function Show-Welcome {
+    # один раз при первом запуске; согласие запоминается файлом accepted.txt
+    Show-Overlay 'Перед началом' 'OknoTune меняет настройки Windows с правами администратора.'
+    Add-OvLine 'Почти всё откатывается в «Истории»' '  — кроме удалённых приложений и файлов.' '#3FB950'
+    Add-OvLine 'Не выключайте точку восстановления' '  — это запасной выход.' '#D29922'
+    Add-OvLine 'Замерьте FPS в любимой игре до и после' '  — так будет виден реальный результат.' '#4F8CFF'
+    Add-OvText 'Программа предоставляется «как есть», без гарантий (лицензия MIT).' '#6B7380' 12 '0,10,0,0'
+    Add-OvButton 'Выйти' { $script:Win.Close() } $null
+    Add-OvButton 'Понятно, начать' { Set-Content -Path $script:AcceptFile -Value (Get-Date -Format s) -Encoding UTF8; Hide-Overlay } $null 'Primary'
+}
 function Finish-Startup {
     # скан железа и каталога готов (или не удался) — строим интерфейс
     Initialize-Ui
+    if (-not $Snapshot -and -not (Test-Path $script:AcceptFile)) { Show-Welcome }
     if ($Snapshot) {
         switch ($View) {
             'list'    { Select-Nav 'Все' }
@@ -2726,6 +2738,7 @@ function Finish-Startup {
             'drivers' { Select-Nav 'drivers' }
             'apps'    { Select-Nav 'apps' }
             'fixes'   { Select-Nav 'fixes' }
+            'welcome' { Show-Welcome }
             'wizard'  { Start-Wizard }
             'review'  { Start-Wizard; $script:QRadios['privacy']['yes'].IsChecked = $true; $script:QRadios['games']['yes'].IsChecked = $true; Complete-Wizard }
         }
