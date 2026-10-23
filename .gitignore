@@ -1,0 +1,17 @@
+# Снимки экранов из -Snapshot (скриншоты для README кладите в docs/)
+/*.png
+
+# Логи и временные файлы
+*.log
+*.tmp
+*.bak
+
+# Windows
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Редакторы
+.vscode/
+.idea/
+*.swp
