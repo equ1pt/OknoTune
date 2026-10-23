@@ -119,6 +119,7 @@ function Restore-Entry($e) {
     foreach ($r in $e.Reg) { if ($r.Exists) { Set-Reg $r.P $r.N $r.Value $r.Kind } else { Remove-Reg $r.P $r.N } }
     foreach ($s in $e.Svc) { if ($s.Start -in 'Automatic', 'Manual', 'Disabled') { Set-SvcStart $s.S $s.Start } }
     foreach ($t in $e.Task) { Set-TaskEnabled $t.T (-not $t.Disabled) }
+    foreach ($d in @($e.Dns)) { if ($d) { Set-AdapterDns $d.Idx @($d.Servers) } }
     foreach ($f in @($e.File)) {
         if (-not $f) { continue }
         if ($f.WasOff) {

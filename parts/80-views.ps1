@@ -100,7 +100,7 @@ function Select-Nav([string]$tag) {
 }
 function Show-View([string]$v) {
     $script:CurView = $v
-    $views = @{ home = $script:HomeView; wizard = $script:WizardView; list = $script:ListView; history = $script:HistoryView; clean = $script:CleanView; startup = $script:StartupView; drivers = $script:DriversView; apps = $script:AppsView }
+    $views = @{ home = $script:HomeView; wizard = $script:WizardView; list = $script:ListView; history = $script:HistoryView; clean = $script:CleanView; startup = $script:StartupView; drivers = $script:DriversView; apps = $script:AppsView; fixes = $script:FixView }
     foreach ($k in $views.Keys) { $views[$k].Visibility = $(if ($k -eq $v) { 'Visible' } else { 'Collapsed' }) }
     $script:Footer.Visibility = $(if ($v -eq 'list') { 'Visible' } else { 'Collapsed' })
     switch ($v) {
@@ -109,6 +109,7 @@ function Show-View([string]$v) {
         'startup' { if (-not $script:StartupBuilt) { Build-Startup } }
         'drivers' { if (-not $script:DrvBuilt) { Build-Drivers } }
         'apps' { if (-not $script:AppsBuilt) { Build-Apps } }
+        'fixes' { if (-not $script:FixBuilt) { Build-Fixes } }
     }
 }
 #endregion
@@ -333,7 +334,9 @@ function Confirm-Undo([string]$path) {
         $note = $(if ($e.Id -like 'app:*') {
             $pk = @($e.Appx | Where-Object { $_ })
             $(if ($pk.Count) { "  —  приложение не вернётся, ставьте из Store (пакет: $($pk[0]))" } else { '  —  приложение не вернётся, ставьте из Store' })
-        } elseif ($e.Id -like 'startup:*') { '  —  автозагрузка вернётся, как было' } else { '' })
+        } elseif ($e.Id -like 'startup:*') { '  —  автозагрузка вернётся, как было' }
+        elseif ($e.Id -eq 'fix:dns') { '  —  вернётся прежний DNS' }
+        elseif ($e.Id -like 'fix:*') { '  —  службы снова будут отключены' } else { '' })
         Add-OvLine (Get-SnapTitle $e) $note '#6B7380'
     }
     Add-OvButton 'Отмена' { Hide-Overlay } $null
@@ -358,5 +361,31 @@ function Invoke-Undo([string]$path) {
     if ($reboot) { Set-RebootPending }
     Write-Log "Откат: восстановлено $($ok.Count), ошибок $($bad.Count)"
     Show-Result $(if ($bad.Count) { 'Откат выполнен с ошибками' } else { 'Откат выполнен' }) $ok $bad $reboot
+}
+#endregion
+
+#region Profile: selected settings to/from a file
+function Export-Profile {
+    $dlg = New-Object Microsoft.Win32.SaveFileDialog
+    $dlg.Filter = 'Профиль OknoTune (*.json)|*.json'; $dlg.FileName = 'oknotune-profile.json'
+    if (-not $dlg.ShowDialog($script:Win)) { return }
+    $sel = [ordered]@{}
+    foreach ($it in $script:Items) { if ($it.Toggle) { $sel[$it.Id] = [bool]$it.Toggle.IsChecked } }
+    ConvertTo-Json -InputObject ([ordered]@{ App = 'OknoTune'; Version = 1; Items = $sel }) -Depth 4 | Set-Content -Path $dlg.FileName -Encoding UTF8
+    Write-Log "Профиль сохранён: $($dlg.FileName) (настроек: $($sel.Count))"
+}
+function Import-Profile {
+    $dlg = New-Object Microsoft.Win32.OpenFileDialog
+    $dlg.Filter = 'Профиль OknoTune (*.json)|*.json'
+    if (-not $dlg.ShowDialog($script:Win)) { return }
+    try { $p = ConvertFrom-Json (Get-Content -Path $dlg.FileName -Raw -Encoding UTF8) } catch { $p = $null }
+    if (-not $p -or $p.App -ne 'OknoTune' -or -not $p.Items) { [void][Windows.MessageBox]::Show($script:Win, 'Это не файл профиля OknoTune.', 'OknoTune'); return }
+    $n = 0
+    foreach ($pr in $p.Items.PSObject.Properties) {
+        $it = $script:ItemsById[$pr.Name]
+        if ($it -and $it.Toggle -and $it.Toggle.IsEnabled) { $it.Toggle.IsChecked = [bool]$pr.Value; $n++ }
+    }
+    Update-Pending; Update-View
+    Write-Log "Профиль загружен: отмечено настроек $n. Проверьте и нажмите «Проверить и применить»"
 }
 #endregion

@@ -335,10 +335,22 @@ $Xaml = @'
     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
     <StackPanel Margin="40,30,40,4">
      <TextBlock Text="Полезные программы" FontSize="26" FontWeight="SemiBold"/>
-     <TextBlock Text="Проверенные бесплатные программы. OknoTune их не скачивает: кнопка открывает официальный сайт, скачиваете и ставите вы сами." Foreground="#8B93A1" FontSize="13" Margin="0,6,0,0" TextWrapping="Wrap"/>
+     <TextBlock Text="Проверенные бесплатные программы. «Установить» ставит программу через winget, менеджер программ Windows, с официального источника. «Открыть сайт» открывает сайт программы в браузере." Foreground="#8B93A1" FontSize="13" Margin="0,6,0,0" TextWrapping="Wrap"/>
     </StackPanel>
     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="40,0,32,16">
      <StackPanel x:Name="AppsList" MaxWidth="900" HorizontalAlignment="Stretch"/>
+    </ScrollViewer>
+   </Grid>
+
+   <!-- Fixes -->
+   <Grid x:Name="FixView" Visibility="Collapsed">
+    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+    <StackPanel Margin="40,30,40,4">
+     <TextBlock Text="Исправления" FontSize="26" FontWeight="SemiBold"/>
+     <TextBlock Text="Что-то перестало работать после настройки? Исправление включит нужные службы Windows и сбросит то, что обычно ломается. Отключённое OknoTune или другой программой — неважно." Foreground="#8B93A1" FontSize="13" Margin="0,6,0,0" TextWrapping="Wrap"/>
+    </StackPanel>
+    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="40,0,32,16">
+     <StackPanel x:Name="FixList" MaxWidth="900" HorizontalAlignment="Stretch"/>
     </ScrollViewer>
    </Grid>
 
@@ -376,6 +388,8 @@ $Xaml = @'
      <TextBlock x:Name="Status" FontSize="13" Foreground="#AEB4BF" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="0,0,16,0"/>
      <StackPanel Grid.Column="1" Orientation="Horizontal">
       <Button x:Name="BtnReboot" Content="Перезагрузить" Style="{StaticResource Warn}" Margin="0,0,8,0" Visibility="Collapsed"/>
+      <Button x:Name="BtnProfSave" Content="Сохранить профиль" Style="{StaticResource Btn}" Margin="0,0,8,0" ToolTip="Сохранить выбранные настройки в файл, чтобы применить их на другом ПК"/>
+      <Button x:Name="BtnProfLoad" Content="Загрузить профиль" Style="{StaticResource Btn}" Margin="0,0,8,0" ToolTip="Отметить настройки из файла профиля. Применяются они только после проверки"/>
       <Button x:Name="BtnReset" Content="Сбросить выбор" Style="{StaticResource Btn}" Margin="0,0,8,0"/>
       <Button x:Name="BtnApply" Content="Проверить и применить" Style="{StaticResource Primary}" IsEnabled="False"/>
      </StackPanel>
@@ -483,7 +497,7 @@ foreach ($n in 'Nav', 'SysInfo', 'BtnLog', 'HomeView', 'HomeCount', 'HomeBar', '
                'Overlay', 'OvTitle', 'OvSub', 'OvBody', 'OvProgress', 'OvLeft', 'OvButtons',
                'CleanView', 'CleanTotal', 'CleanDisk', 'CleanList', 'CleanStatus', 'BtnCleanMgr', 'BtnRescan', 'BtnClean',
                'StartupView', 'SuSummary', 'SuList', 'SuStatus', 'BtnSuRescan', 'BtnSuApply',
-               'DriversView', 'DrvList', 'DrvStatus', 'BtnWuDrivers', 'BtnDevMgr', 'BtnDrvRescan', 'AppsView', 'AppsList') {
+               'DriversView', 'DrvList', 'DrvStatus', 'BtnWuDrivers', 'BtnDevMgr', 'BtnDrvRescan', 'AppsView', 'AppsList', 'FixView', 'FixList', 'BtnProfSave', 'BtnProfLoad') {
     Set-Variable -Scope Script -Name $n -Value $script:Win.FindName($n)
 }
 $script:Styles = @{}

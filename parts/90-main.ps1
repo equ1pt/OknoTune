@@ -10,6 +10,7 @@
     Add-NavItem 'clean' 0xE74D 'Очистка диска'
     Add-NavItem 'startup' 0xE7E8 'Автозагрузка'
     Add-NavItem 'drivers' 0xE772 'Драйверы'
+    Add-NavItem 'fixes' 0xE9D9 'Исправления'
     Add-NavItem 'apps' 0xE8F1 'Полезные программы'
     Add-NavItem 'history' 0xE81C 'История'
     $script:RebootPending = (Test-Path $script:RebootFile) -and ((Get-Content $script:RebootFile -Raw).Trim() -eq (Get-BootTicks))
@@ -25,7 +26,7 @@
 $script:Nav.Add_SelectionChanged({
     if ($script:NavBusy -or -not $script:Nav.SelectedItem) { return }
     $tag = $script:Nav.SelectedItem.Tag
-    if ($tag -in 'home', 'history', 'clean', 'startup', 'drivers', 'apps') { Show-View $tag }
+    if ($tag -in 'home', 'history', 'clean', 'startup', 'drivers', 'apps', 'fixes') { Show-View $tag }
     else { $script:CurCat = $tag; Show-View 'list' }
 })
 $script:Search.Add_TextChanged({ $script:SearchHint.Visibility = $(if ($script:Search.Text) { 'Collapsed' } else { 'Visible' }); if ($script:Items) { Update-View } })
@@ -35,6 +36,8 @@ $script:BtnSafe.Add_Click({
     Update-Pending
 })
 $script:BtnReset.Add_Click({ Reset-Toggles; Update-Pending })
+$script:BtnProfSave.Add_Click({ Export-Profile })
+$script:BtnProfLoad.Add_Click({ Import-Profile })
 $script:BtnApply.Add_Click({ Show-Review })
 $script:BtnReboot.Add_Click({ Invoke-Reboot })
 $script:BtnReboot2.Add_Click({ Invoke-Reboot })
@@ -68,6 +71,7 @@ function Finish-Startup {
             'startup' { Select-Nav 'startup' }
             'drivers' { Select-Nav 'drivers' }
             'apps'    { Select-Nav 'apps' }
+            'fixes'   { Select-Nav 'fixes' }
             'wizard'  { Start-Wizard }
             'review'  { Start-Wizard; $script:QRadios['privacy']['yes'].IsChecked = $true; $script:QRadios['games']['yes'].IsChecked = $true; Complete-Wizard }
         }
