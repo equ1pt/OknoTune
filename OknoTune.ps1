@@ -1841,11 +1841,16 @@ function Show-View([string]$v) {
     switch ($v) {
         'home' { Update-Home } 'history' { Build-History } 'list' { Update-Pending; Update-View }
         'clean' { if (-not $script:CleanBuilt) { Build-Clean } }
-        'startup' { if (-not $script:StartupBuilt) { Build-Startup } }
-        'drivers' { if (-not $script:DrvBuilt) { Build-Drivers } }
-        'apps' { if (-not $script:AppsBuilt) { Build-Apps } }
-        'fixes' { if (-not $script:FixBuilt) { Build-Fixes } }
+        'startup' { if (-not $script:StartupBuilt) { Invoke-Busy 'Проверяю автозагрузку…' { Build-Startup } } }
+        'drivers' { if (-not $script:DrvBuilt) { Invoke-Busy 'Проверяю устройства и драйверы…' { Build-Drivers } } }
+        'apps' { if (-not $script:AppsBuilt) { Invoke-Busy 'Загружаю список программ…' { Build-Apps } } }
+        'fixes' { if (-not $script:FixBuilt) { Invoke-Busy 'Проверяю службы и сеть…' { Build-Fixes } } }
     }
+}
+function Invoke-Busy([string]$text, [scriptblock]$work) {
+    # вкладка уже видна; надпись по центру отрисовывается до долгой работы, чтобы окно не казалось зависшим
+    $script:Loading.Text = $text; $script:Loading.Visibility = 'Visible'; Pump
+    try { & $work } finally { $script:Loading.Visibility = 'Collapsed' }
 }
 #endregion
 
@@ -2698,9 +2703,9 @@ $script:BtnClean.Add_Click({ Confirm-Clean })
 $script:BtnRescan.Add_Click({ Update-CleanSizes })
 $script:BtnCleanMgr.Add_Click({ Start-Process cleanmgr.exe })
 $script:BtnSuApply.Add_Click({ Confirm-Startup })
-$script:BtnSuRescan.Add_Click({ Build-Startup })
+$script:BtnSuRescan.Add_Click({ Invoke-Busy 'Проверяю автозагрузку…' { Build-Startup } })
 $script:BtnHistClear.Add_Click({ Confirm-HistoryClear })
-$script:BtnDrvRescan.Add_Click({ Build-Drivers })
+$script:BtnDrvRescan.Add_Click({ Invoke-Busy 'Проверяю устройства и драйверы…' { Build-Drivers } })
 $script:BtnDevMgr.Add_Click({ Start-Process devmgmt.msc })
 $script:BtnWuDrivers.Add_Click({ Open-Url 'ms-settings:windowsupdate-optionalupdates' })
 $script:Win.Add_SourceInitialized({
