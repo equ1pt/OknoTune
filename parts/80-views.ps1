@@ -96,11 +96,11 @@ function Add-NavHeader([string]$text) {
     [void]$script:Nav.Items.Add($li)
 }
 function Select-Nav([string]$tag) {
-    foreach ($li in $script:Nav.Items) { if ($li.Tag -eq $tag) { $script:Nav.SelectedItem = $li; return } }
+    foreach ($li in $script:Nav.Items) { if ($li.Tag -eq $tag) { $script:Nav.SelectedItem = $li; $script:Nav.ScrollIntoView($li); return } }
 }
 function Show-View([string]$v) {
     $script:CurView = $v
-    $views = @{ home = $script:HomeView; wizard = $script:WizardView; list = $script:ListView; history = $script:HistoryView; clean = $script:CleanView; startup = $script:StartupView; drivers = $script:DriversView }
+    $views = @{ home = $script:HomeView; wizard = $script:WizardView; list = $script:ListView; history = $script:HistoryView; clean = $script:CleanView; startup = $script:StartupView; drivers = $script:DriversView; apps = $script:AppsView }
     foreach ($k in $views.Keys) { $views[$k].Visibility = $(if ($k -eq $v) { 'Visible' } else { 'Collapsed' }) }
     $script:Footer.Visibility = $(if ($v -eq 'list') { 'Visible' } else { 'Collapsed' })
     switch ($v) {
@@ -108,6 +108,7 @@ function Show-View([string]$v) {
         'clean' { if (-not $script:CleanBuilt) { Build-Clean } }
         'startup' { if (-not $script:StartupBuilt) { Build-Startup } }
         'drivers' { if (-not $script:DrvBuilt) { Build-Drivers } }
+        'apps' { if (-not $script:AppsBuilt) { Build-Apps } }
     }
 }
 #endregion

@@ -138,7 +138,7 @@ $Xaml = @'
      <TextBlock x:Name="SysInfo" Foreground="#5F6774" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,10"/>
      <Button x:Name="BtnLog" Content="Папка журнала" Style="{StaticResource Btn}" HorizontalAlignment="Left" FontSize="12" Padding="12,6"/>
     </StackPanel>
-    <ListBox x:Name="Nav" Background="Transparent" BorderThickness="0" ItemContainerStyle="{StaticResource Nav}" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Hidden"/>
+    <ListBox x:Name="Nav" Background="Transparent" BorderThickness="0" ItemContainerStyle="{StaticResource Nav}" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Auto"/>
    </DockPanel>
   </Border>
 
@@ -330,6 +330,18 @@ $Xaml = @'
     </Border>
    </Grid>
 
+   <!-- Apps -->
+   <Grid x:Name="AppsView" Visibility="Collapsed">
+    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+    <StackPanel Margin="40,30,40,4">
+     <TextBlock Text="Полезные программы" FontSize="26" FontWeight="SemiBold"/>
+     <TextBlock Text="Проверенные бесплатные программы. OknoTune их не скачивает: кнопка открывает официальный сайт, скачиваете и ставите вы сами." Foreground="#8B93A1" FontSize="13" Margin="0,6,0,0" TextWrapping="Wrap"/>
+    </StackPanel>
+    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="40,0,32,16">
+     <StackPanel x:Name="AppsList" MaxWidth="900" HorizontalAlignment="Stretch"/>
+    </ScrollViewer>
+   </Grid>
+
    <!-- Startup -->
    <Grid x:Name="StartupView" Visibility="Collapsed">
     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
@@ -471,7 +483,7 @@ foreach ($n in 'Nav', 'SysInfo', 'BtnLog', 'HomeView', 'HomeCount', 'HomeBar', '
                'Overlay', 'OvTitle', 'OvSub', 'OvBody', 'OvProgress', 'OvLeft', 'OvButtons',
                'CleanView', 'CleanTotal', 'CleanDisk', 'CleanList', 'CleanStatus', 'BtnCleanMgr', 'BtnRescan', 'BtnClean',
                'StartupView', 'SuSummary', 'SuList', 'SuStatus', 'BtnSuRescan', 'BtnSuApply',
-               'DriversView', 'DrvList', 'DrvStatus', 'BtnWuDrivers', 'BtnDevMgr', 'BtnDrvRescan') {
+               'DriversView', 'DrvList', 'DrvStatus', 'BtnWuDrivers', 'BtnDevMgr', 'BtnDrvRescan', 'AppsView', 'AppsList') {
     Set-Variable -Scope Script -Name $n -Value $script:Win.FindName($n)
 }
 $script:Styles = @{}

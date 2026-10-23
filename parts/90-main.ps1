@@ -10,6 +10,7 @@
     Add-NavItem 'clean' 0xE74D 'Очистка диска'
     Add-NavItem 'startup' 0xE7E8 'Автозагрузка'
     Add-NavItem 'drivers' 0xE772 'Драйверы'
+    Add-NavItem 'apps' 0xE8F1 'Полезные программы'
     Add-NavItem 'history' 0xE81C 'История'
     $script:RebootPending = (Test-Path $script:RebootFile) -and ((Get-Content $script:RebootFile -Raw).Trim() -eq (Get-BootTicks))
     if (-not $script:RebootPending) { Remove-Item $script:RebootFile -ErrorAction SilentlyContinue }
@@ -24,7 +25,7 @@
 $script:Nav.Add_SelectionChanged({
     if ($script:NavBusy -or -not $script:Nav.SelectedItem) { return }
     $tag = $script:Nav.SelectedItem.Tag
-    if ($tag -in 'home', 'history', 'clean', 'startup', 'drivers') { Show-View $tag }
+    if ($tag -in 'home', 'history', 'clean', 'startup', 'drivers', 'apps') { Show-View $tag }
     else { $script:CurCat = $tag; Show-View 'list' }
 })
 $script:Search.Add_TextChanged({ $script:SearchHint.Visibility = $(if ($script:Search.Text) { 'Collapsed' } else { 'Visible' }); if ($script:Items) { Update-View } })
@@ -66,6 +67,7 @@ function Finish-Startup {
             'clean'   { Select-Nav 'clean' }
             'startup' { Select-Nav 'startup' }
             'drivers' { Select-Nav 'drivers' }
+            'apps'    { Select-Nav 'apps' }
             'wizard'  { Start-Wizard }
             'review'  { Start-Wizard; $script:QRadios['privacy']['yes'].IsChecked = $true; $script:QRadios['games']['yes'].IsChecked = $true; Complete-Wizard }
         }

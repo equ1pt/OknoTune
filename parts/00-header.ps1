@@ -2,7 +2,7 @@
   OknoTune — настройка Windows с откатом.
   Запуск: OknoTune.cmd (или powershell -ExecutionPolicy Bypass -File OknoTune.ps1)
   -Selftest                проверить состояние без окна и без изменений
-  -Snapshot a.png [-View]  отрисовать экран в PNG и выйти (home|wizard|review|list|history), без изменений
+  -Snapshot a.png [-View]  отрисовать экран в PNG и выйти (home|wizard|review|list|history|clean|startup|drivers|apps), без изменений
 #>
 param([switch]$Selftest, [string]$Snapshot, [string]$View = 'home')
 
