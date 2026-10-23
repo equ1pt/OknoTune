@@ -4,7 +4,7 @@ function Update-Card($it) {
     if ($it.Appx -and $it.State -eq 'on') { $it.Toggle.IsEnabled = $false }
     $txt = switch ($it.State) { 'on' { if ($it.Appx) { 'Удалено' } else { 'Применено' } } 'partial' { 'Применено частично' } default { if ($it.Appx) { 'Установлено' } else { 'Не применено' } } }
     $col = switch ($it.State) { 'on' { '#4ADE80' } 'partial' { '#E3B341' } default { '#6B7380' } }
-    if ($pending) { $txt += "  →  будет: $(Get-Verb $it)"; $col = '#7FA8FF' }
+    if ($pending) { $txt += "  →  будет: $(Get-Verb $it -Done)"; $col = '#7FA8FF' }
     $it.StatusTb.Text = $txt
     $it.StatusTb.Foreground = Brush $col
     $it.Card.BorderBrush = Brush $(if ($pending) { '#4F8CFF' } else { '#232831' })
@@ -207,7 +207,9 @@ function Show-Review {
         Add-OvText $c.ToUpper() '#6B7380' 11 '0,8,0,6' -Bold
         foreach ($it in $inCat) {
             $dot = $(if ($it.Toggle.IsChecked) { $ImpactColor[$it.Impact] } else { '#6B7380' })
-            Add-OvLine $it.Title "  —  $(Get-Verb $it)" $dot
+            # для применяемых — что получится (Short с карточки), а не глагол, который легко понять наоборот
+            $tail = $(if ($it.Toggle.IsChecked -and -not $it.Appx -and $it.Short) { $it.Short } else { Get-Verb $it })
+            Add-OvLine $it.Title "  —  $tail" $dot
         }
     }
     $on = @($changes | Where-Object { $_.Toggle.IsChecked -and $_.Warn -and -not $_.Appx })
@@ -255,7 +257,7 @@ function Invoke-Changes($changes, [bool]$restore) {
         $i++; $en = [bool]$it.Toggle.IsChecked
         $script:OvProgress.Value = 100 * $i / $changes.Count
         Write-Log ('{0}: {1}' -f $(if ($en) { 'Применяю' } else { 'Возвращаю' }), $it.Title); Pump
-        try { Set-TweakState $it $en; $ok += "$($it.Title)  —  $(Get-Verb $it)"; if ($it.Reboot) { $reboot = $true } }
+        try { Set-TweakState $it $en; $ok += "$($it.Title)  —  $(Get-Verb $it -Done)"; if ($it.Reboot) { $reboot = $true } }
         catch { $bad += "$($it.Title): $($_.Exception.Message)"; Write-Log "Ошибка «$($it.Title)»: $($_.Exception.Message)" }
     }
     Write-Log 'Проверяю результат…'; Pump

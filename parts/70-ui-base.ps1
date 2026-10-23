@@ -576,8 +576,11 @@ function Write-Log([string]$m) {
     if ($script:Overlay.Visibility -eq 'Visible' -and $script:OvProgress.Visibility -eq 'Visible') { $script:OvSub.Text = $m }
 }
 function Test-Pending($it) { $it.Toggle -and $it.Toggle.IsEnabled -and ([bool]$it.Toggle.IsChecked -ne ($it.State -eq 'on')) }
-function Get-Verb($it) {
-    if ($it.Appx) { 'удалить' } elseif ($it.Toggle.IsChecked) { 'включить' } else { 'вернуть как в Windows' }
+function Get-Verb($it, [switch]$Done) {
+    # «применить», а не «включить»: многие твики как раз отключают функцию Windows
+    if ($it.Appx) { $(if ($Done) { 'удалено' } else { 'удалить' }) }
+    elseif ($it.Toggle.IsChecked) { $(if ($Done) { 'применено' } else { 'применить' }) }
+    else { $(if ($Done) { 'возвращено как в Windows' } else { 'вернуть как в Windows' }) }
 }
 
 #region Reboot flag (cleared by an actual reboot)
@@ -609,8 +612,9 @@ function Add-OvText([string]$text, [string]$color = '#C9CED6', [double]$size = 1
     [void]$script:OvBody.Children.Add($tb)
 }
 function Add-OvLine([string]$main, [string]$tail, [string]$dot) {
-    $sp = New-Object Windows.Controls.StackPanel; $sp.Orientation = 'Horizontal'; $sp.Margin = '0,0,0,5'
-    $e = New-Object Windows.Shapes.Ellipse; $e.Width = 7; $e.Height = 7; $e.Fill = Brush $dot; $e.Margin = '2,0,10,0'; $e.VerticalAlignment = 'Center'
+    # DockPanel, а не горизонтальный StackPanel: иначе длинный текст не переносится и обрезается
+    $sp = New-Object Windows.Controls.DockPanel; $sp.Margin = '0,0,0,5'
+    $e = New-Object Windows.Shapes.Ellipse; $e.Width = 7; $e.Height = 7; $e.Fill = Brush $dot; $e.Margin = '2,6,10,0'; $e.VerticalAlignment = 'Top'
     $tb = New-Object Windows.Controls.TextBlock; $tb.FontSize = 13; $tb.TextWrapping = 'Wrap'
     $r1 = New-Object Windows.Documents.Run $main; $r1.Foreground = Brush '#E6E8EB'
     $r2 = New-Object Windows.Documents.Run $tail; $r2.Foreground = Brush '#8B93A1'
