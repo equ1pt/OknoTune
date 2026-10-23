@@ -21,18 +21,47 @@ function Update-CleanTotal {
     $script:CleanDisk.Text = "Свободно на диске $($env:SystemDrive) $(Format-Size (Get-FreeBytes))"
     $script:BtnClean.IsEnabled = @($script:CleanItems | Where-Object { $_.Toggle.IsChecked }).Count -gt 0
 }
+function Set-CleanSize($c, $bytes) {
+    $c.Bytes = $bytes
+    $c.SizeTb.Text = Format-Size $bytes
+    $c.SizeTb.Foreground = Brush $(if ($bytes -gt 100MB) { '#E6E8EB' } else { '#8B93A1' })
+}
 function Update-CleanSizes {
-    $script:CleanStatus.Text = 'Считаю размер…'
-    foreach ($c in $script:CleanItems) { $c.SizeTb.Text = '…' }
-    Pump
-    foreach ($c in $script:CleanItems) {
-        $c.Bytes = Get-CleanSize $c
-        $c.SizeTb.Text = Format-Size $c.Bytes
-        $c.SizeTb.Foreground = Brush $(if ($c.Bytes -gt 100MB) { '#E6E8EB' } else { '#8B93A1' })
-        Pump
+    # обход папок идёт в фоне, размеры появляются по мере подсчёта
+    if ($script:BgJobs['clean']) { return }
+    $script:BtnRescan.IsEnabled = $false; $script:BtnClean.IsEnabled = $false
+    foreach ($c in $script:CleanItems) { $c.SizeTb.Text = '…'; $c.Bytes = $null }
+    # пункты со своей функцией размера (корзина через COM, WinSxS) быстрые — считаем здесь
+    foreach ($c in @($script:CleanItems | Where-Object { $_.Size })) { Set-CleanSize $c (Get-CleanSize $c) }
+    $jobs = @($script:CleanItems | Where-Object { -not $_.Size } | ForEach-Object { @{ Id = $_.Id; Title = $_.Title; MinAge = $_.MinAge; Paths = $_.Paths.ToString() } })
+    $script:CleanJobCount = $jobs.Count
+    $script:CleanTotal.Text = '…'; $script:CleanDisk.Text = "Свободно на диске $($env:SystemDrive) $(Format-Size (Get-FreeBytes))"
+    $script:CleanStatus.Text = "Считаю размер… 0 из $($jobs.Count)"
+    $script:CleanBar.Value = 0; $script:CleanBar.Visibility = 'Visible'
+    Start-Bg 'clean' @('Test-SafePath', 'Get-FilesSafe', 'Get-CleanFiles', 'Get-CleanSize') @{ CleanRoots = $script:CleanRoots; Lad = $Lad; CleanJobs = $jobs } {
+        param($sync)
+        $i = 0
+        foreach ($c in $CleanJobs) {
+            $sync.Text = $c.Title
+            $c.Paths = [scriptblock]::Create($c.Paths)
+            $sync.Partial[$c.Id] = Get-CleanSize $c
+            $i++; $sync.Value = 100 * $i / $CleanJobs.Count
+        }
+    } {
+        param($s)
+        foreach ($id in @($s.Partial.Keys)) {
+            $c = $script:CleanItems | Where-Object { $_.Id -eq $id }
+            if ($c -and $null -eq $c.Bytes) { Set-CleanSize $c $s.Partial[$id] }
+        }
+        $script:CleanBar.Value = $s.Value
+        $script:CleanStatus.Text = "Считаю размер… $($s.Partial.Count) из $($script:CleanJobCount)$(if ($s.Text) { ": $($s.Text)" })"
+    } {
+        param($s)
+        $script:CleanBar.Visibility = 'Collapsed'; $script:BtnRescan.IsEnabled = $true
+        foreach ($c in $script:CleanItems) { if ($null -eq $c.Bytes -and $s.Partial.ContainsKey($c.Id)) { Set-CleanSize $c $s.Partial[$c.Id] } elseif ($null -eq $c.Bytes -and -not $c.Size) { $c.SizeTb.Text = '—' } }
+        $script:CleanStatus.Text = $(if ($s.Error) { "Не всё удалось посчитать: $($s.Error)" } else { 'Отметьте, что удалить, и нажмите «Очистить».' })
+        Update-CleanTotal
     }
-    $script:CleanStatus.Text = 'Отметьте, что удалить, и нажмите «Очистить».'
-    Update-CleanTotal
 }
 function Build-Clean {
     $script:CleanList.Children.Clear()

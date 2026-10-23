@@ -297,7 +297,10 @@ $Xaml = @'
     <Border Grid.Row="2" Background="#13161C" BorderBrush="#1E232B" BorderThickness="0,1,0,0" Padding="40,14">
      <Grid>
       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-      <TextBlock x:Name="CleanStatus" FontSize="13" Foreground="#AEB4BF" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+      <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
+       <TextBlock x:Name="CleanStatus" FontSize="13" Foreground="#AEB4BF" TextTrimming="CharacterEllipsis"/>
+       <ProgressBar x:Name="CleanBar" Height="3" Margin="0,6,0,0" Visibility="Collapsed" Foreground="#4F8CFF" Background="#232A35" BorderThickness="0" Maximum="100"/>
+      </StackPanel>
       <StackPanel Grid.Column="1" Orientation="Horizontal">
        <Button x:Name="BtnCleanMgr" Content="Очистка диска Windows" Style="{StaticResource Btn}" Margin="0,0,8,0"/>
        <Button x:Name="BtnRescan" Content="Пересчитать" Style="{StaticResource Btn}" Margin="0,0,8,0"/>
@@ -380,6 +383,10 @@ $Xaml = @'
    </Grid>
 
    <TextBlock x:Name="Loading" Text="Проверяю систему…" Foreground="#8B93A1" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+   <StackPanel x:Name="Busy" Width="340" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed" IsHitTestVisible="False">
+    <TextBlock x:Name="BusyText" Foreground="#8B93A1" FontSize="14" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center"/>
+    <ProgressBar x:Name="BusyBar" Height="4" Margin="0,12,0,0" Foreground="#4F8CFF" Background="#232A35" BorderThickness="0" Maximum="100"/>
+   </StackPanel>
 
    <!-- Footer (list view) -->
    <Border x:Name="Footer" Grid.Row="1" Visibility="Collapsed" Background="#13161C" BorderBrush="#1E232B" BorderThickness="0,1,0,0" Padding="32,14">
@@ -497,7 +504,7 @@ foreach ($n in 'Nav', 'SysInfo', 'BtnLog', 'HomeView', 'HomeCount', 'HomeBar', '
                'Overlay', 'OvTitle', 'OvSub', 'OvBody', 'OvProgress', 'OvLeft', 'OvButtons',
                'CleanView', 'CleanTotal', 'CleanDisk', 'CleanList', 'CleanStatus', 'BtnCleanMgr', 'BtnRescan', 'BtnClean',
                'StartupView', 'SuSummary', 'SuList', 'SuStatus', 'BtnSuRescan', 'BtnSuApply',
-               'DriversView', 'DrvList', 'DrvStatus', 'BtnWuDrivers', 'BtnDevMgr', 'BtnDrvRescan', 'AppsView', 'AppsList', 'FixView', 'FixList', 'BtnProfSave', 'BtnProfLoad') {
+               'DriversView', 'DrvList', 'DrvStatus', 'BtnWuDrivers', 'BtnDevMgr', 'BtnDrvRescan', 'AppsView', 'AppsList', 'FixView', 'FixList', 'BtnProfSave', 'BtnProfLoad', 'Busy', 'BusyText', 'BusyBar', 'CleanBar') {
     Set-Variable -Scope Script -Name $n -Value $script:Win.FindName($n)
 }
 $script:Styles = @{}
@@ -516,6 +523,53 @@ $script:Headers = @{}; $script:NavItems = @{}; $script:QRadios = @{}
 $script:Ru = [Globalization.CultureInfo]'ru-RU'
 
 function Pump { $script:Win.Dispatcher.Invoke([Action] {}, [Windows.Threading.DispatcherPriority]::Background) }
+
+#region Background work (окно не зависает, пока идёт скан)
+# $work выполняется в отдельном runspace: туда копируются функции $fns и переменные $vars.
+# $work получает $sync: Value (0..100), Text, Partial (промежуточные результаты); его вывод попадает в $sync.Result.
+# $tick вызывается в потоке UI каждые 150 мс, $done — один раз в конце (ошибка — в $sync.Error).
+$script:BgJobs = @{}
+function Start-Bg([string]$key, [string[]]$fns, [hashtable]$vars, [scriptblock]$work, [scriptblock]$tick, [scriptblock]$done) {
+    if ($script:BgJobs[$key]) { return }   # уже идёт
+    $iss = [Management.Automation.Runspaces.InitialSessionState]::CreateDefault()
+    foreach ($f in $fns) { $iss.Commands.Add((New-Object Management.Automation.Runspaces.SessionStateFunctionEntry $f, (Get-Item "function:$f").Definition)) }
+    foreach ($k in $vars.Keys) { $iss.Variables.Add((New-Object Management.Automation.Runspaces.SessionStateVariableEntry $k, $vars[$k], '')) }
+    $sync = [hashtable]::Synchronized(@{ Done = $false; Error = $null; Result = $null; Value = 0; Text = ''; Partial = [hashtable]::Synchronized(@{}) })
+    $ps = [powershell]::Create($iss)
+    # скрипт-блоки нельзя выполнять в чужом runspace — передаём текст и собираем заново
+    [void]$ps.AddScript({
+        param($code, $sync)
+        try { $sync.Result = @(& ([scriptblock]::Create($code)) $sync) } catch { $sync.Error = "$_" } finally { $sync.Done = $true }
+    }).AddArgument($work.ToString()).AddArgument($sync)
+    $timer = New-Object Windows.Threading.DispatcherTimer
+    $timer.Interval = [TimeSpan]::FromMilliseconds(150); $timer.Tag = $key
+    $timer.Add_Tick({ Step-Bg $this.Tag })
+    $script:BgJobs[$key] = @{ Ps = $ps; Sync = $sync; Tick = $tick; Done = $done; Timer = $timer; Async = $ps.BeginInvoke() }
+    $timer.Start()
+}
+function Step-Bg([string]$key) {
+    $j = $script:BgJobs[$key]
+    if (-not $j) { return }
+    if ($j.Tick) { & $j.Tick $j.Sync }
+    if (-not $j.Sync.Done) { return }
+    $j.Timer.Stop(); $script:BgJobs.Remove($key)
+    try { $j.Ps.Runspace.Close(); $j.Ps.Dispose() } catch {}
+    & $j.Done $j.Sync
+}
+function Wait-Bg {
+    # для -Snapshot: дождаться всех фоновых задач, не полагаясь на таймер
+    while ($script:BgJobs.Count) { foreach ($k in @($script:BgJobs.Keys)) { Step-Bg $k }; Start-Sleep -Milliseconds 50 }
+}
+# Надпись с полосой по центру вкладки, пока идёт её скан; видна только на своей вкладке.
+$script:BusyState = @{}
+function Set-Busy([string]$view, [string]$text, [double]$value) { $script:BusyState[$view] = @{ Text = $text; Value = $value }; Update-Busy }
+function Clear-Busy([string]$view) { $script:BusyState.Remove($view); Update-Busy }
+function Update-Busy {
+    $b = $script:BusyState[$script:CurView]
+    $script:Busy.Visibility = $(if ($b) { 'Visible' } else { 'Collapsed' })
+    if ($b) { $script:BusyText.Text = $b.Text; $script:BusyBar.Value = $b.Value }
+}
+#endregion
 function Write-Log([string]$m) {
     Add-Content -Path $script:LogFile -Value ('{0:yyyy-MM-dd HH:mm:ss}  {1}' -f (Get-Date), $m) -Encoding UTF8
     $script:Status.Text = $m

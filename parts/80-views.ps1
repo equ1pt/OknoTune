@@ -107,10 +107,11 @@ function Show-View([string]$v) {
         'home' { Update-Home } 'history' { Build-History } 'list' { Update-Pending; Update-View }
         'clean' { if (-not $script:CleanBuilt) { Build-Clean } }
         'startup' { if (-not $script:StartupBuilt) { Invoke-Busy 'Проверяю автозагрузку…' { Build-Startup } } }
-        'drivers' { if (-not $script:DrvBuilt) { Invoke-Busy 'Проверяю устройства и драйверы…' { Build-Drivers } } }
-        'apps' { if (-not $script:AppsBuilt) { Invoke-Busy 'Загружаю список программ…' { Build-Apps } } }
-        'fixes' { if (-not $script:FixBuilt) { Invoke-Busy 'Проверяю службы и сеть…' { Build-Fixes } } }
+        'drivers' { if (-not $script:DrvBuilt) { Build-Drivers } }
+        'apps' { if (-not $script:AppsBuilt) { Build-Apps } }
+        'fixes' { if (-not $script:FixBuilt) { Build-Fixes } }
     }
+    Update-Busy
 }
 function Invoke-Busy([string]$text, [scriptblock]$work) {
     # вкладка уже видна; надпись по центру отрисовывается до долгой работы, чтобы окно не казалось зависшим

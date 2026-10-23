@@ -188,7 +188,11 @@ function Build-Fixes {
     }
     Add-FixHeader 'DNS-СЕРВЕР'
     $card = New-FixCard 'СЕТЬ' 'Сменить DNS' 'DNS превращает адреса сайтов в IP. Свой DNS иногда открывает сайты быстрее, а AdGuard ещё и режет рекламу. Прежний DNS сохранится в «Истории».' '#3FB950'
-    $script:DnsLabel = $card.FindName('A'); $script:DnsLabel.Foreground = Brush '#7FA8FF'; $script:DnsLabel.Text = Get-DnsLabel
+    $script:DnsLabel = $card.FindName('A'); $script:DnsLabel.Foreground = Brush '#7FA8FF'; $script:DnsLabel.Text = 'Проверяю текущий DNS…'
+    # Get-NetAdapter занимает до секунды — читаем в фоне
+    Start-Bg 'dns' @('Get-DnsLabel', 'Get-DnsState', 'Get-DnsAdapters', 'Get-RegRaw', 'Format-RegVal') @{ DnsCatalog = $DnsCatalog } { param($sync) Get-DnsLabel } $null {
+        param($s) $script:DnsLabel.Text = $(if ($s.Error) { 'Не удалось прочитать текущий DNS' } else { "$($s.Result[0])" })
+    }
     $btns = $card.FindName('Btns')
     foreach ($k in $DnsCatalog.Keys) { [void]$btns.Children.Add((New-FixButton $k $k { Invoke-Dns $this.Tag })) }
     [void]$btns.Children.Add((New-FixButton 'Автоматически' '' { Invoke-Dns '' }))

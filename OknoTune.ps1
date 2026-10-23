@@ -1079,8 +1079,11 @@ $GpuSites = @{
     Intel  = @(, @('Intel Driver & Support Assistant', 'https://www.intel.com/content/www/us/en/support/detect.html'))
 }
 # Returns a list of cards: @{ Kind; Title; Details; Date; Fresh (months); Bad; Buttons = @(@(text, url)) }
-function Get-DriverInfo {
+# $sync (необязательно) — прогресс для фонового запуска: Value 0..100, Text
+function Get-DriverInfo($sync) {
+    function Step([int]$v, [string]$t) { if ($sync) { $sync.Value = $v; $sync.Text = $t } }
     $cards = New-Object System.Collections.Generic.List[object]
+    Step 5 'Видеокарта…'
     foreach ($g in Get-CimInstance Win32_VideoController) {
         $vendor = switch -Regex ($g.PNPDeviceID) { 'VEN_10DE' { 'NVIDIA' } 'VEN_1002' { 'AMD' } 'VEN_8086' { 'Intel' } default { $null } }
         if (-not $vendor -and $g.Name -notmatch 'Basic Display|Базовый видеоадаптер') { continue }   # skip virtual adapters
@@ -1089,6 +1092,7 @@ function Get-DriverInfo {
         $cards.Add(@{ Kind = 'Видеокарта'; Title = $g.Name; Date = $g.DriverDate; Fresh = 4; Bad = $basic; Buttons = $btns
             Details = $(if ($basic) { 'Драйвер видеокарты не установлен: работает стандартный драйвер Windows.' } else { "Драйвер $($g.DriverVersion)" }) })
     }
+    Step 20 'Материнская плата и BIOS…'
     $cs = Get-CimInstance Win32_ComputerSystem; $bb = Get-CimInstance Win32_BaseBoard; $bios = Get-CimInstance Win32_BIOS
     $generic = 'System manufacturer|To Be Filled|Default string|O\.E\.M|^$'
     $isLaptop = [bool](Get-CimInstance Win32_Battery -ErrorAction SilentlyContinue)
@@ -1102,6 +1106,7 @@ function Get-DriverInfo {
     $cpu = (Get-CimInstance Win32_Processor | Select-Object -First 1).Name
     if ($cpu -match 'AMD') { $cards.Add(@{ Kind = 'Чипсет'; Title = "Чипсет AMD ($($cpu.Trim()))"; Details = 'Драйвер чипсета AMD улучшает работу планировщика Ryzen и энергосбережения.'; Buttons = @(, @('Скачать драйвер чипсета AMD', 'https://www.amd.com/ru/support/download/drivers.html')) }) }
     elseif ($cpu -match 'Intel') { $cards.Add(@{ Kind = 'Чипсет'; Title = "Чипсет Intel ($($cpu.Trim()))"; Details = 'Intel Driver & Support Assistant сам найдёт драйверы чипсета и других устройств Intel.'; Buttons = @(, @('Intel Driver & Support Assistant', 'https://www.intel.com/content/www/us/en/support/detect.html')) }) }
+    Step 40 'Сеть и звук…'
     $skip = 'Microsoft|VMware|VirtualBox|Hyper-V|Virtual|TAP-|Wintun|-tun|Tunnel|WireGuard|OpenVPN|Npcap|WAN Miniport|SoftEther|NVIDIA High Definition|AMD High Definition|Steam|VB-Audio|Bluetooth|Remote|Loopback'
     Get-CimInstance Win32_PnPSignedDriver -Filter "DeviceClass='NET' OR DeviceClass='MEDIA'" -ErrorAction SilentlyContinue |
         Where-Object { $_.DeviceName -and $_.DriverProviderName -notmatch 'Microsoft' -and "$($_.DeviceName) $($_.DriverProviderName)" -notmatch $skip } |
@@ -1111,7 +1116,8 @@ function Get-DriverInfo {
                 Details = "$($_.DriverProviderName), драйвер $($_.DriverVersion)$(if ($hw) { ". ID: $hw" })"; Buttons = (Get-FindButtons $hw $_.DeviceName) })
         }
     # code 22 = disabled on purpose, not broken
-    $bad = @(Get-CimInstance Win32_PnPEntity -Filter 'ConfigManagerErrorCode <> 0 AND ConfigManagerErrorCode <> 22' -ErrorAction SilentlyContinue)
+    Step 75 'Устройства с ошибками…'
+    $bad =@(Get-CimInstance Win32_PnPEntity -Filter 'ConfigManagerErrorCode <> 0 AND ConfigManagerErrorCode <> 22' -ErrorAction SilentlyContinue)
     foreach ($d in $bad) {
         $hw = Get-HwId @($d.HardwareID + $d.DeviceID)
         $why = $(if ($d.ConfigManagerErrorCode -eq 28) { 'Драйвер не установлен.' } else { "Ошибка устройства (код $($d.ConfigManagerErrorCode))." })
@@ -1446,7 +1452,10 @@ $Xaml = @'
     <Border Grid.Row="2" Background="#13161C" BorderBrush="#1E232B" BorderThickness="0,1,0,0" Padding="40,14">
      <Grid>
       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-      <TextBlock x:Name="CleanStatus" FontSize="13" Foreground="#AEB4BF" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+      <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
+       <TextBlock x:Name="CleanStatus" FontSize="13" Foreground="#AEB4BF" TextTrimming="CharacterEllipsis"/>
+       <ProgressBar x:Name="CleanBar" Height="3" Margin="0,6,0,0" Visibility="Collapsed" Foreground="#4F8CFF" Background="#232A35" BorderThickness="0" Maximum="100"/>
+      </StackPanel>
       <StackPanel Grid.Column="1" Orientation="Horizontal">
        <Button x:Name="BtnCleanMgr" Content="Очистка диска Windows" Style="{StaticResource Btn}" Margin="0,0,8,0"/>
        <Button x:Name="BtnRescan" Content="Пересчитать" Style="{StaticResource Btn}" Margin="0,0,8,0"/>
@@ -1529,6 +1538,10 @@ $Xaml = @'
    </Grid>
 
    <TextBlock x:Name="Loading" Text="Проверяю систему…" Foreground="#8B93A1" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+   <StackPanel x:Name="Busy" Width="340" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed" IsHitTestVisible="False">
+    <TextBlock x:Name="BusyText" Foreground="#8B93A1" FontSize="14" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center"/>
+    <ProgressBar x:Name="BusyBar" Height="4" Margin="0,12,0,0" Foreground="#4F8CFF" Background="#232A35" BorderThickness="0" Maximum="100"/>
+   </StackPanel>
 
    <!-- Footer (list view) -->
    <Border x:Name="Footer" Grid.Row="1" Visibility="Collapsed" Background="#13161C" BorderBrush="#1E232B" BorderThickness="0,1,0,0" Padding="32,14">
@@ -1646,7 +1659,7 @@ foreach ($n in 'Nav', 'SysInfo', 'BtnLog', 'HomeView', 'HomeCount', 'HomeBar', '
                'Overlay', 'OvTitle', 'OvSub', 'OvBody', 'OvProgress', 'OvLeft', 'OvButtons',
                'CleanView', 'CleanTotal', 'CleanDisk', 'CleanList', 'CleanStatus', 'BtnCleanMgr', 'BtnRescan', 'BtnClean',
                'StartupView', 'SuSummary', 'SuList', 'SuStatus', 'BtnSuRescan', 'BtnSuApply',
-               'DriversView', 'DrvList', 'DrvStatus', 'BtnWuDrivers', 'BtnDevMgr', 'BtnDrvRescan', 'AppsView', 'AppsList', 'FixView', 'FixList', 'BtnProfSave', 'BtnProfLoad') {
+               'DriversView', 'DrvList', 'DrvStatus', 'BtnWuDrivers', 'BtnDevMgr', 'BtnDrvRescan', 'AppsView', 'AppsList', 'FixView', 'FixList', 'BtnProfSave', 'BtnProfLoad', 'Busy', 'BusyText', 'BusyBar', 'CleanBar') {
     Set-Variable -Scope Script -Name $n -Value $script:Win.FindName($n)
 }
 $script:Styles = @{}
@@ -1665,6 +1678,53 @@ $script:Headers = @{}; $script:NavItems = @{}; $script:QRadios = @{}
 $script:Ru = [Globalization.CultureInfo]'ru-RU'
 
 function Pump { $script:Win.Dispatcher.Invoke([Action] {}, [Windows.Threading.DispatcherPriority]::Background) }
+
+#region Background work (окно не зависает, пока идёт скан)
+# $work выполняется в отдельном runspace: туда копируются функции $fns и переменные $vars.
+# $work получает $sync: Value (0..100), Text, Partial (промежуточные результаты); его вывод попадает в $sync.Result.
+# $tick вызывается в потоке UI каждые 150 мс, $done — один раз в конце (ошибка — в $sync.Error).
+$script:BgJobs = @{}
+function Start-Bg([string]$key, [string[]]$fns, [hashtable]$vars, [scriptblock]$work, [scriptblock]$tick, [scriptblock]$done) {
+    if ($script:BgJobs[$key]) { return }   # уже идёт
+    $iss = [Management.Automation.Runspaces.InitialSessionState]::CreateDefault()
+    foreach ($f in $fns) { $iss.Commands.Add((New-Object Management.Automation.Runspaces.SessionStateFunctionEntry $f, (Get-Item "function:$f").Definition)) }
+    foreach ($k in $vars.Keys) { $iss.Variables.Add((New-Object Management.Automation.Runspaces.SessionStateVariableEntry $k, $vars[$k], '')) }
+    $sync = [hashtable]::Synchronized(@{ Done = $false; Error = $null; Result = $null; Value = 0; Text = ''; Partial = [hashtable]::Synchronized(@{}) })
+    $ps = [powershell]::Create($iss)
+    # скрипт-блоки нельзя выполнять в чужом runspace — передаём текст и собираем заново
+    [void]$ps.AddScript({
+        param($code, $sync)
+        try { $sync.Result = @(& ([scriptblock]::Create($code)) $sync) } catch { $sync.Error = "$_" } finally { $sync.Done = $true }
+    }).AddArgument($work.ToString()).AddArgument($sync)
+    $timer = New-Object Windows.Threading.DispatcherTimer
+    $timer.Interval = [TimeSpan]::FromMilliseconds(150); $timer.Tag = $key
+    $timer.Add_Tick({ Step-Bg $this.Tag })
+    $script:BgJobs[$key] = @{ Ps = $ps; Sync = $sync; Tick = $tick; Done = $done; Timer = $timer; Async = $ps.BeginInvoke() }
+    $timer.Start()
+}
+function Step-Bg([string]$key) {
+    $j = $script:BgJobs[$key]
+    if (-not $j) { return }
+    if ($j.Tick) { & $j.Tick $j.Sync }
+    if (-not $j.Sync.Done) { return }
+    $j.Timer.Stop(); $script:BgJobs.Remove($key)
+    try { $j.Ps.Runspace.Close(); $j.Ps.Dispose() } catch {}
+    & $j.Done $j.Sync
+}
+function Wait-Bg {
+    # для -Snapshot: дождаться всех фоновых задач, не полагаясь на таймер
+    while ($script:BgJobs.Count) { foreach ($k in @($script:BgJobs.Keys)) { Step-Bg $k }; Start-Sleep -Milliseconds 50 }
+}
+# Надпись с полосой по центру вкладки, пока идёт её скан; видна только на своей вкладке.
+$script:BusyState = @{}
+function Set-Busy([string]$view, [string]$text, [double]$value) { $script:BusyState[$view] = @{ Text = $text; Value = $value }; Update-Busy }
+function Clear-Busy([string]$view) { $script:BusyState.Remove($view); Update-Busy }
+function Update-Busy {
+    $b = $script:BusyState[$script:CurView]
+    $script:Busy.Visibility = $(if ($b) { 'Visible' } else { 'Collapsed' })
+    if ($b) { $script:BusyText.Text = $b.Text; $script:BusyBar.Value = $b.Value }
+}
+#endregion
 function Write-Log([string]$m) {
     Add-Content -Path $script:LogFile -Value ('{0:yyyy-MM-dd HH:mm:ss}  {1}' -f (Get-Date), $m) -Encoding UTF8
     $script:Status.Text = $m
@@ -1842,10 +1902,11 @@ function Show-View([string]$v) {
         'home' { Update-Home } 'history' { Build-History } 'list' { Update-Pending; Update-View }
         'clean' { if (-not $script:CleanBuilt) { Build-Clean } }
         'startup' { if (-not $script:StartupBuilt) { Invoke-Busy 'Проверяю автозагрузку…' { Build-Startup } } }
-        'drivers' { if (-not $script:DrvBuilt) { Invoke-Busy 'Проверяю устройства и драйверы…' { Build-Drivers } } }
-        'apps' { if (-not $script:AppsBuilt) { Invoke-Busy 'Загружаю список программ…' { Build-Apps } } }
-        'fixes' { if (-not $script:FixBuilt) { Invoke-Busy 'Проверяю службы и сеть…' { Build-Fixes } } }
+        'drivers' { if (-not $script:DrvBuilt) { Build-Drivers } }
+        'apps' { if (-not $script:AppsBuilt) { Build-Apps } }
+        'fixes' { if (-not $script:FixBuilt) { Build-Fixes } }
     }
+    Update-Busy
 }
 function Invoke-Busy([string]$text, [scriptblock]$work) {
     # вкладка уже видна; надпись по центру отрисовывается до долгой работы, чтобы окно не казалось зависшим
@@ -2153,18 +2214,47 @@ function Update-CleanTotal {
     $script:CleanDisk.Text = "Свободно на диске $($env:SystemDrive) $(Format-Size (Get-FreeBytes))"
     $script:BtnClean.IsEnabled = @($script:CleanItems | Where-Object { $_.Toggle.IsChecked }).Count -gt 0
 }
+function Set-CleanSize($c, $bytes) {
+    $c.Bytes = $bytes
+    $c.SizeTb.Text = Format-Size $bytes
+    $c.SizeTb.Foreground = Brush $(if ($bytes -gt 100MB) { '#E6E8EB' } else { '#8B93A1' })
+}
 function Update-CleanSizes {
-    $script:CleanStatus.Text = 'Считаю размер…'
-    foreach ($c in $script:CleanItems) { $c.SizeTb.Text = '…' }
-    Pump
-    foreach ($c in $script:CleanItems) {
-        $c.Bytes = Get-CleanSize $c
-        $c.SizeTb.Text = Format-Size $c.Bytes
-        $c.SizeTb.Foreground = Brush $(if ($c.Bytes -gt 100MB) { '#E6E8EB' } else { '#8B93A1' })
-        Pump
+    # обход папок идёт в фоне, размеры появляются по мере подсчёта
+    if ($script:BgJobs['clean']) { return }
+    $script:BtnRescan.IsEnabled = $false; $script:BtnClean.IsEnabled = $false
+    foreach ($c in $script:CleanItems) { $c.SizeTb.Text = '…'; $c.Bytes = $null }
+    # пункты со своей функцией размера (корзина через COM, WinSxS) быстрые — считаем здесь
+    foreach ($c in @($script:CleanItems | Where-Object { $_.Size })) { Set-CleanSize $c (Get-CleanSize $c) }
+    $jobs = @($script:CleanItems | Where-Object { -not $_.Size } | ForEach-Object { @{ Id = $_.Id; Title = $_.Title; MinAge = $_.MinAge; Paths = $_.Paths.ToString() } })
+    $script:CleanJobCount = $jobs.Count
+    $script:CleanTotal.Text = '…'; $script:CleanDisk.Text = "Свободно на диске $($env:SystemDrive) $(Format-Size (Get-FreeBytes))"
+    $script:CleanStatus.Text = "Считаю размер… 0 из $($jobs.Count)"
+    $script:CleanBar.Value = 0; $script:CleanBar.Visibility = 'Visible'
+    Start-Bg 'clean' @('Test-SafePath', 'Get-FilesSafe', 'Get-CleanFiles', 'Get-CleanSize') @{ CleanRoots = $script:CleanRoots; Lad = $Lad; CleanJobs = $jobs } {
+        param($sync)
+        $i = 0
+        foreach ($c in $CleanJobs) {
+            $sync.Text = $c.Title
+            $c.Paths = [scriptblock]::Create($c.Paths)
+            $sync.Partial[$c.Id] = Get-CleanSize $c
+            $i++; $sync.Value = 100 * $i / $CleanJobs.Count
+        }
+    } {
+        param($s)
+        foreach ($id in @($s.Partial.Keys)) {
+            $c = $script:CleanItems | Where-Object { $_.Id -eq $id }
+            if ($c -and $null -eq $c.Bytes) { Set-CleanSize $c $s.Partial[$id] }
+        }
+        $script:CleanBar.Value = $s.Value
+        $script:CleanStatus.Text = "Считаю размер… $($s.Partial.Count) из $($script:CleanJobCount)$(if ($s.Text) { ": $($s.Text)" })"
+    } {
+        param($s)
+        $script:CleanBar.Visibility = 'Collapsed'; $script:BtnRescan.IsEnabled = $true
+        foreach ($c in $script:CleanItems) { if ($null -eq $c.Bytes -and $s.Partial.ContainsKey($c.Id)) { Set-CleanSize $c $s.Partial[$c.Id] } elseif ($null -eq $c.Bytes -and -not $c.Size) { $c.SizeTb.Text = '—' } }
+        $script:CleanStatus.Text = $(if ($s.Error) { "Не всё удалось посчитать: $($s.Error)" } else { 'Отметьте, что удалить, и нажмите «Очистить».' })
+        Update-CleanTotal
     }
-    $script:CleanStatus.Text = 'Отметьте, что удалить, и нажмите «Очистить».'
-    Update-CleanTotal
 }
 function Build-Clean {
     $script:CleanList.Children.Clear()
@@ -2333,9 +2423,24 @@ function Open-Url([string]$url) {
     } catch { Start-Process $url }
 }
 function Build-Drivers {
+    # скан в фоне; карточки рисует Show-Drivers, когда данные готовы
+    if ($script:BgJobs['drivers']) { return }
+    $script:DrvList.Children.Clear(); $script:BtnDrvRescan.IsEnabled = $false
+    $script:DrvStatus.Text = 'Проверяю устройства…'
+    Set-Busy 'drivers' 'Проверяю устройства и драйверы…' 0
+    Start-Bg 'drivers' @('Get-DriverInfo', 'Get-HwId', 'Get-FindButtons', 'Get-SearchUrl') @{ VendorSites = $VendorSites; GpuSites = $GpuSites } {
+        param($sync) Get-DriverInfo $sync
+    } {
+        param($s) if ($s.Text) { Set-Busy 'drivers' "Проверяю: $($s.Text)" $s.Value }
+    } {
+        param($s)
+        Clear-Busy 'drivers'; $script:BtnDrvRescan.IsEnabled = $true
+        if ($s.Error) { $script:DrvStatus.Text = "Не удалось проверить устройства: $($s.Error)"; Write-Log "Драйверы: $($s.Error)"; return }
+        Show-Drivers @($s.Result)
+    }
+}
+function Show-Drivers($cards) {
     $script:DrvList.Children.Clear()
-    $script:DrvStatus.Text = 'Проверяю устройства…'; Pump
-    $cards = @(Get-DriverInfo)
     foreach ($d in $cards) {
         $card = New-Xaml $DrvXaml
         $card.FindName('K').Text = $d.Kind.ToUpper()
@@ -2636,7 +2741,11 @@ function Build-Fixes {
     }
     Add-FixHeader 'DNS-СЕРВЕР'
     $card = New-FixCard 'СЕТЬ' 'Сменить DNS' 'DNS превращает адреса сайтов в IP. Свой DNS иногда открывает сайты быстрее, а AdGuard ещё и режет рекламу. Прежний DNS сохранится в «Истории».' '#3FB950'
-    $script:DnsLabel = $card.FindName('A'); $script:DnsLabel.Foreground = Brush '#7FA8FF'; $script:DnsLabel.Text = Get-DnsLabel
+    $script:DnsLabel = $card.FindName('A'); $script:DnsLabel.Foreground = Brush '#7FA8FF'; $script:DnsLabel.Text = 'Проверяю текущий DNS…'
+    # Get-NetAdapter занимает до секунды — читаем в фоне
+    Start-Bg 'dns' @('Get-DnsLabel', 'Get-DnsState', 'Get-DnsAdapters', 'Get-RegRaw', 'Format-RegVal') @{ DnsCatalog = $DnsCatalog } { param($sync) Get-DnsLabel } $null {
+        param($s) $script:DnsLabel.Text = $(if ($s.Error) { 'Не удалось прочитать текущий DNS' } else { "$($s.Result[0])" })
+    }
     $btns = $card.FindName('Btns')
     foreach ($k in $DnsCatalog.Keys) { [void]$btns.Children.Add((New-FixButton $k $k { Invoke-Dns $this.Tag })) }
     [void]$btns.Children.Add((New-FixButton 'Автоматически' '' { Invoke-Dns '' }))
@@ -2706,7 +2815,7 @@ $script:BtnCleanMgr.Add_Click({ Start-Process cleanmgr.exe })
 $script:BtnSuApply.Add_Click({ Confirm-Startup })
 $script:BtnSuRescan.Add_Click({ Invoke-Busy 'Проверяю автозагрузку…' { Build-Startup } })
 $script:BtnHistClear.Add_Click({ Confirm-HistoryClear })
-$script:BtnDrvRescan.Add_Click({ Invoke-Busy 'Проверяю устройства и драйверы…' { Build-Drivers } })
+$script:BtnDrvRescan.Add_Click({ Build-Drivers })
 $script:BtnDevMgr.Add_Click({ Start-Process devmgmt.msc })
 $script:BtnWuDrivers.Add_Click({ Open-Url 'ms-settings:windowsupdate-optionalupdates' })
 $script:Win.Add_SourceInitialized({
@@ -2730,7 +2839,8 @@ function Finish-Startup {
     Initialize-Ui
     if (-not $Snapshot -and -not (Test-Path $script:AcceptFile)) { Show-Welcome }
     if ($Snapshot) {
-        switch ($View) {
+        # <вкладка>-busy — снимок посреди фонового скана, иначе ждём, пока он закончится
+        switch ($View -replace '-busy$', '') {
             'list'    { Select-Nav 'Все' }
             'history' { Select-Nav 'history' }
             'clean'   { Select-Nav 'clean' }
@@ -2742,6 +2852,8 @@ function Finish-Startup {
             'wizard'  { Start-Wizard }
             'review'  { Start-Wizard; $script:QRadios['privacy']['yes'].IsChecked = $true; $script:QRadios['games']['yes'].IsChecked = $true; Complete-Wizard }
         }
+        if ($View -like '*-busy') { Start-Sleep -Milliseconds 700; foreach ($j in @($script:BgJobs.Values)) { if ($j.Tick) { & $j.Tick $j.Sync } } }
+        else { Wait-Bg }
         Pump
         $el = $script:Win.Content
         $rtb = New-Object Windows.Media.Imaging.RenderTargetBitmap ([int]$el.ActualWidth), ([int]$el.ActualHeight), 96, 96, ([Windows.Media.PixelFormats]::Pbgra32)

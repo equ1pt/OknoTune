@@ -52,7 +52,7 @@ $script:BtnCleanMgr.Add_Click({ Start-Process cleanmgr.exe })
 $script:BtnSuApply.Add_Click({ Confirm-Startup })
 $script:BtnSuRescan.Add_Click({ Invoke-Busy 'Проверяю автозагрузку…' { Build-Startup } })
 $script:BtnHistClear.Add_Click({ Confirm-HistoryClear })
-$script:BtnDrvRescan.Add_Click({ Invoke-Busy 'Проверяю устройства и драйверы…' { Build-Drivers } })
+$script:BtnDrvRescan.Add_Click({ Build-Drivers })
 $script:BtnDevMgr.Add_Click({ Start-Process devmgmt.msc })
 $script:BtnWuDrivers.Add_Click({ Open-Url 'ms-settings:windowsupdate-optionalupdates' })
 $script:Win.Add_SourceInitialized({
@@ -76,7 +76,8 @@ function Finish-Startup {
     Initialize-Ui
     if (-not $Snapshot -and -not (Test-Path $script:AcceptFile)) { Show-Welcome }
     if ($Snapshot) {
-        switch ($View) {
+        # <вкладка>-busy — снимок посреди фонового скана, иначе ждём, пока он закончится
+        switch ($View -replace '-busy$', '') {
             'list'    { Select-Nav 'Все' }
             'history' { Select-Nav 'history' }
             'clean'   { Select-Nav 'clean' }
@@ -88,6 +89,8 @@ function Finish-Startup {
             'wizard'  { Start-Wizard }
             'review'  { Start-Wizard; $script:QRadios['privacy']['yes'].IsChecked = $true; $script:QRadios['games']['yes'].IsChecked = $true; Complete-Wizard }
         }
+        if ($View -like '*-busy') { Start-Sleep -Milliseconds 700; foreach ($j in @($script:BgJobs.Values)) { if ($j.Tick) { & $j.Tick $j.Sync } } }
+        else { Wait-Bg }
         Pump
         $el = $script:Win.Content
         $rtb = New-Object Windows.Media.Imaging.RenderTargetBitmap ([int]$el.ActualWidth), ([int]$el.ActualHeight), 96, 96, ([Windows.Media.PixelFormats]::Pbgra32)

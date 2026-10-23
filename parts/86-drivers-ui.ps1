@@ -24,9 +24,24 @@ function Open-Url([string]$url) {
     } catch { Start-Process $url }
 }
 function Build-Drivers {
+    # скан в фоне; карточки рисует Show-Drivers, когда данные готовы
+    if ($script:BgJobs['drivers']) { return }
+    $script:DrvList.Children.Clear(); $script:BtnDrvRescan.IsEnabled = $false
+    $script:DrvStatus.Text = 'Проверяю устройства…'
+    Set-Busy 'drivers' 'Проверяю устройства и драйверы…' 0
+    Start-Bg 'drivers' @('Get-DriverInfo', 'Get-HwId', 'Get-FindButtons', 'Get-SearchUrl') @{ VendorSites = $VendorSites; GpuSites = $GpuSites } {
+        param($sync) Get-DriverInfo $sync
+    } {
+        param($s) if ($s.Text) { Set-Busy 'drivers' "Проверяю: $($s.Text)" $s.Value }
+    } {
+        param($s)
+        Clear-Busy 'drivers'; $script:BtnDrvRescan.IsEnabled = $true
+        if ($s.Error) { $script:DrvStatus.Text = "Не удалось проверить устройства: $($s.Error)"; Write-Log "Драйверы: $($s.Error)"; return }
+        Show-Drivers @($s.Result)
+    }
+}
+function Show-Drivers($cards) {
     $script:DrvList.Children.Clear()
-    $script:DrvStatus.Text = 'Проверяю устройства…'; Pump
-    $cards = @(Get-DriverInfo)
     foreach ($d in $cards) {
         $card = New-Xaml $DrvXaml
         $card.FindName('K').Text = $d.Kind.ToUpper()

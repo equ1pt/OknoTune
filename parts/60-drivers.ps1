@@ -35,8 +35,11 @@ $GpuSites = @{
     Intel  = @(, @('Intel Driver & Support Assistant', 'https://www.intel.com/content/www/us/en/support/detect.html'))
 }
 # Returns a list of cards: @{ Kind; Title; Details; Date; Fresh (months); Bad; Buttons = @(@(text, url)) }
-function Get-DriverInfo {
+# $sync (необязательно) — прогресс для фонового запуска: Value 0..100, Text
+function Get-DriverInfo($sync) {
+    function Step([int]$v, [string]$t) { if ($sync) { $sync.Value = $v; $sync.Text = $t } }
     $cards = New-Object System.Collections.Generic.List[object]
+    Step 5 'Видеокарта…'
     foreach ($g in Get-CimInstance Win32_VideoController) {
         $vendor = switch -Regex ($g.PNPDeviceID) { 'VEN_10DE' { 'NVIDIA' } 'VEN_1002' { 'AMD' } 'VEN_8086' { 'Intel' } default { $null } }
         if (-not $vendor -and $g.Name -notmatch 'Basic Display|Базовый видеоадаптер') { continue }   # skip virtual adapters
@@ -45,6 +48,7 @@ function Get-DriverInfo {
         $cards.Add(@{ Kind = 'Видеокарта'; Title = $g.Name; Date = $g.DriverDate; Fresh = 4; Bad = $basic; Buttons = $btns
             Details = $(if ($basic) { 'Драйвер видеокарты не установлен: работает стандартный драйвер Windows.' } else { "Драйвер $($g.DriverVersion)" }) })
     }
+    Step 20 'Материнская плата и BIOS…'
     $cs = Get-CimInstance Win32_ComputerSystem; $bb = Get-CimInstance Win32_BaseBoard; $bios = Get-CimInstance Win32_BIOS
     $generic = 'System manufacturer|To Be Filled|Default string|O\.E\.M|^$'
     $isLaptop = [bool](Get-CimInstance Win32_Battery -ErrorAction SilentlyContinue)
@@ -58,6 +62,7 @@ function Get-DriverInfo {
     $cpu = (Get-CimInstance Win32_Processor | Select-Object -First 1).Name
     if ($cpu -match 'AMD') { $cards.Add(@{ Kind = 'Чипсет'; Title = "Чипсет AMD ($($cpu.Trim()))"; Details = 'Драйвер чипсета AMD улучшает работу планировщика Ryzen и энергосбережения.'; Buttons = @(, @('Скачать драйвер чипсета AMD', 'https://www.amd.com/ru/support/download/drivers.html')) }) }
     elseif ($cpu -match 'Intel') { $cards.Add(@{ Kind = 'Чипсет'; Title = "Чипсет Intel ($($cpu.Trim()))"; Details = 'Intel Driver & Support Assistant сам найдёт драйверы чипсета и других устройств Intel.'; Buttons = @(, @('Intel Driver & Support Assistant', 'https://www.intel.com/content/www/us/en/support/detect.html')) }) }
+    Step 40 'Сеть и звук…'
     $skip = 'Microsoft|VMware|VirtualBox|Hyper-V|Virtual|TAP-|Wintun|-tun|Tunnel|WireGuard|OpenVPN|Npcap|WAN Miniport|SoftEther|NVIDIA High Definition|AMD High Definition|Steam|VB-Audio|Bluetooth|Remote|Loopback'
     Get-CimInstance Win32_PnPSignedDriver -Filter "DeviceClass='NET' OR DeviceClass='MEDIA'" -ErrorAction SilentlyContinue |
         Where-Object { $_.DeviceName -and $_.DriverProviderName -notmatch 'Microsoft' -and "$($_.DeviceName) $($_.DriverProviderName)" -notmatch $skip } |
@@ -67,7 +72,8 @@ function Get-DriverInfo {
                 Details = "$($_.DriverProviderName), драйвер $($_.DriverVersion)$(if ($hw) { ". ID: $hw" })"; Buttons = (Get-FindButtons $hw $_.DeviceName) })
         }
     # code 22 = disabled on purpose, not broken
-    $bad = @(Get-CimInstance Win32_PnPEntity -Filter 'ConfigManagerErrorCode <> 0 AND ConfigManagerErrorCode <> 22' -ErrorAction SilentlyContinue)
+    Step 75 'Устройства с ошибками…'
+    $bad =@(Get-CimInstance Win32_PnPEntity -Filter 'ConfigManagerErrorCode <> 0 AND ConfigManagerErrorCode <> 22' -ErrorAction SilentlyContinue)
     foreach ($d in $bad) {
         $hw = Get-HwId @($d.HardwareID + $d.DeviceID)
         $why = $(if ($d.ConfigManagerErrorCode -eq 28) { 'Драйвер не установлен.' } else { "Ошибка устройства (код $($d.ConfigManagerErrorCode))." })
