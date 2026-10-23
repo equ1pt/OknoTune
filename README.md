@@ -76,15 +76,16 @@ Windows попросит права администратора: нажмите
 
 ![Полезные программы](docs/apps.png)
 
-«Установить» ставит программу через **winget**, менеджер программ Windows, в отдельном окне. Условия лицензии winget покажет там же, принимаете их вы сами. Если пакета в winget нет, кнопка открывает официальный сайт.
+«Установить» ставит программу через **winget**, менеджер программ Windows, в отдельном окне. winget скачивает обычный установщик с сайта разработчика, версии из Microsoft Store не используются. Условия лицензии winget покажет там же, принимаете их вы сами. Если пакета в winget нет, кнопка открывает официальный сайт.
 
 OknoTune не распространяет эти программы: он даёт ссылку или передаёт установку winget. У каждой программы своя лицензия. Например, Dr.Web CureIt! бесплатен только для домашнего использования.
 
 | Категория | Программы |
 |---|---|
-| 📅 На каждый день | 7-Zip, Notepad++, Everything, qBittorrent |
-| 🛠️ Обслуживание системы | HiBit Uninstaller, SpaceSniffer, Easy Service Optimizer |
-| 🔌 Драйверы и устройства | DriverStore Explorer, Device Cleanup Tool |
+| 🌐 Интернет | Google Chrome, qBittorrent |
+| 🎮 Игры и общение | Steam, Discord, Telegram |
+| 📁 Файлы | 7-Zip, Notepad++, Everything, SpaceSniffer |
+| 🛠️ Обслуживание системы | HiBit Uninstaller, Easy Service Optimizer, DriverStore Explorer, Device Cleanup Tool |
 | 🛡️ Проверка на вирусы | Kaspersky Virus Removal Tool, Dr.Web CureIt!, AdwCleaner |
 
 ---

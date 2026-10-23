@@ -1,8 +1,9 @@
 # OknoTune launcher (ASCII only: irm | iex chokes on the UTF-8 BOM that OknoTune.ps1 needs)
 #   irm https://raw.githubusercontent.com/equ1pt/OknoTune/main/run.ps1 | iex
-# Downloads OknoTune.ps1 to %TEMP%\OknoTune and starts it as administrator in its own window.
+# Downloads OknoTune.ps1 from the latest release to %TEMP%\OknoTune and starts it as administrator.
+# Latest release, not main: users get a released version, and GitHub counts each launch as an asset download.
 & {
-    $url = 'https://raw.githubusercontent.com/equ1pt/OknoTune/main/OknoTune.ps1'
+    $url = 'https://github.com/equ1pt/OknoTune/releases/latest/download/OknoTune.ps1'
     $dir = Join-Path $env:TEMP 'OknoTune'
     $file = Join-Path $dir 'OknoTune.ps1'
     try {

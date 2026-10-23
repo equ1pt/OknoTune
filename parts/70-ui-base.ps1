@@ -338,7 +338,7 @@ $Xaml = @'
     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
     <StackPanel Margin="40,30,40,4">
      <TextBlock Text="Полезные программы" FontSize="26" FontWeight="SemiBold"/>
-     <TextBlock Text="Проверенные бесплатные программы. «Установить» ставит программу через winget, менеджер программ Windows, с официального источника. «Открыть сайт» открывает сайт программы в браузере." Foreground="#8B93A1" FontSize="13" Margin="0,6,0,0" TextWrapping="Wrap"/>
+     <TextBlock Text="Проверенные бесплатные программы. «Установить» скачивает обычный установщик с сайта разработчика через winget (не версию из Microsoft Store) и запускает его в отдельном окне. «Сайт» открывает страницу программы." Foreground="#8B93A1" FontSize="13" Margin="0,6,0,0" TextWrapping="Wrap"/>
     </StackPanel>
     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="40,0,32,16">
      <StackPanel x:Name="AppsList" MaxWidth="900" HorizontalAlignment="Stretch"/>
