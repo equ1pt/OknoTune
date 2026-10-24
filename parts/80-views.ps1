@@ -104,7 +104,8 @@ function Select-Nav([string]$tag) {
     foreach ($li in $script:Nav.Items) { if ($li.Tag -eq $tag) { $script:Nav.SelectedItem = $li; $script:Nav.ScrollIntoView($li); return } }
 }
 function Start-FadeIn($el) {
-    # проявление и сдвиг на 8 px снизу, 180 мс
+    # проявление и сдвиг на 8 px снизу, 180 мс; в -Snapshot без анимации, иначе снимок выйдет полупрозрачным
+    if ($Snapshot) { return }
     $dur = [Windows.Duration][TimeSpan]::FromMilliseconds(180)
     $ease = New-Object Windows.Media.Animation.QuadraticEase -Property @{ EasingMode = 'EaseOut' }
     $tt = New-Object Windows.Media.TranslateTransform; $el.RenderTransform = $tt
