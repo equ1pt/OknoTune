@@ -52,8 +52,8 @@ $AppTileXaml = @'
   <StackPanel Name="Btns" DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,10,0,0"/>
   <StackPanel>
    <DockPanel>
-    <Ellipse Name="Dot" Width="8" Height="8" Margin="0,0,8,0" VerticalAlignment="Center"/>
-    <TextBlock Name="T" FontSize="14" FontWeight="SemiBold" Foreground="#E6E8EB" TextTrimming="CharacterEllipsis"/>
+    <Ellipse Name="Dot" Width="8" Height="8" Margin="0,6,8,0" VerticalAlignment="Top"/>
+    <TextBlock Name="T" FontSize="14" FontWeight="SemiBold" Foreground="#E6E8EB" TextWrapping="Wrap"/>
    </DockPanel>
    <TextBlock Name="K" FontSize="10" FontWeight="SemiBold" Foreground="#6B7380" Margin="16,3,0,0"/>
    <TextBlock Name="D" FontSize="12" Foreground="#8B93A1" TextWrapping="Wrap" Margin="0,6,0,0"/>
