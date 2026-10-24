@@ -5,7 +5,7 @@
 **Настройка Windows 10/11 с откатом: просто, понятно и без риска**
 
 [![Скачивания](https://img.shields.io/github/downloads/equ1pt/OknoTune/total?label=%D1%81%D0%BA%D0%B0%D1%87%D0%B8%D0%B2%D0%B0%D0%BD%D0%B8%D1%8F&color=brightgreen)](#-быстрый-запуск)
-[![Версия](https://img.shields.io/github/v/release/equ1pt/OknoTune?label=%D0%B2%D0%B5%D1%80%D1%81%D0%B8%D1%8F)](https://github.com/equ1pt/OknoTune/releases/latest)
+[![Версия](https://img.shields.io/github/v/release/equ1pt/OknoTune?label=%D0%B2%D0%B5%D1%80%D1%81%D0%B8%D1%8F&display_name=tag)](https://github.com/equ1pt/OknoTune/releases/latest)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![Windows 10/11](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D6?logo=windows)
 ![PowerShell 5.1](https://img.shields.io/badge/PowerShell-5.1-5391FE?logo=powershell&logoColor=white)
