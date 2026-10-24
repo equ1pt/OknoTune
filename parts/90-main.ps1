@@ -43,6 +43,10 @@ $script:BtnReboot.Add_Click({ Invoke-Reboot })
 $script:BtnReboot2.Add_Click({ Invoke-Reboot })
 $script:BtnStart.Add_Click({ Start-Wizard })
 $script:BtnManual.Add_Click({ Select-Nav 'Все' })
+# плитки главной: Tag — тег пункта меню
+$script:HomeView.AddHandler([Windows.Controls.Primitives.ButtonBase]::ClickEvent, [Windows.RoutedEventHandler]{
+    param($s, $e) if ($e.OriginalSource.Tag -is [string]) { Select-Nav $e.OriginalSource.Tag }
+})
 $script:WizBack.Add_Click({ Select-Nav 'home' })
 $script:WizNext.Add_Click({ Complete-Wizard })
 $script:BtnLog.Add_Click({ Start-Process explorer.exe $script:DataDir })

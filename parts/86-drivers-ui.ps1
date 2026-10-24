@@ -1,16 +1,18 @@
 ﻿#region Drivers UI
 $DrvXaml = @'
-<Border xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" CornerRadius="10" Margin="0,0,0,10" Background="#171B22" BorderBrush="#232831" BorderThickness="1">
+<Border xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" CornerRadius="10" Margin="0,0,10,10" Background="#171B22" BorderBrush="#232831" BorderThickness="1">
  <Grid>
-  <Grid.ColumnDefinitions><ColumnDefinition Width="5"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+  <Grid.ColumnDefinitions><ColumnDefinition Width="5"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
   <Border Name="Stripe" CornerRadius="9,0,0,9"/>
-  <StackPanel Grid.Column="1" Margin="16,13,0,13">
-   <TextBlock Name="K" FontSize="11" FontWeight="SemiBold" Foreground="#6B7380"/>
-   <TextBlock Name="T" FontSize="15" FontWeight="SemiBold" Foreground="#E6E8EB" TextWrapping="Wrap" Margin="0,4,0,0"/>
-   <TextBlock Name="D" FontSize="13" Foreground="#8B93A1" TextWrapping="Wrap" Margin="0,4,0,0"/>
-   <TextBlock Name="A" FontSize="12" Margin="0,6,0,0"/>
-  </StackPanel>
-  <StackPanel Name="Btns" Grid.Column="2" VerticalAlignment="Center" Margin="20,0,18,0"/>
+  <DockPanel Grid.Column="1" Margin="14,12,14,12">
+   <WrapPanel Name="Btns" DockPanel.Dock="Bottom" Margin="0,10,0,-6"/>
+   <StackPanel>
+    <TextBlock Name="K" FontSize="11" FontWeight="SemiBold" Foreground="#6B7380"/>
+    <TextBlock Name="T" FontSize="14" FontWeight="SemiBold" Foreground="#E6E8EB" TextWrapping="Wrap" Margin="0,4,0,0"/>
+    <TextBlock Name="D" FontSize="12" Foreground="#8B93A1" TextWrapping="Wrap" Margin="0,4,0,0"/>
+    <TextBlock Name="A" FontSize="12" TextWrapping="Wrap" Margin="0,6,0,0"/>
+   </StackPanel>
+  </DockPanel>
  </Grid>
 </Border>
 '@
@@ -59,13 +61,11 @@ function Show-Drivers($cards) {
         $a = $card.FindName('A'); $a.Text = $ageText; $a.Foreground = Brush $(if ($color -eq '#3FB950') { '#7EE2A0' } elseif ($color -eq '#D29922') { '#E3B341' } else { '#FF7B72' })
         $btns = $card.FindName('Btns'); $first = $true
         foreach ($b in $d.Buttons) {
-            $btn = New-Object Windows.Controls.Button
-            $btn.Content = $b[0]; $btn.Tag = $b[1]; $btn.Margin = '0,0,0,6'; $btn.HorizontalAlignment = 'Stretch'; $btn.MinWidth = 220; $btn.ToolTip = $b[1]
-            $btn.Style = $script:Styles[$(if ($first) { 'Primary' } else { 'Btn' })]; $first = $false
-            $btn.Add_Click({ Open-Url $this.Tag })
+            $btn = New-AppButton $b[0] $b[1] $(if ($first) { 'Primary' } else { 'Btn' }) { Open-Url $this.Tag }
+            $btn.Margin = '0,0,6,6'; $btn.ToolTip = $b[1]; $first = $false
             [void]$btns.Children.Add($btn)
         }
-        [void]$script:DrvList.Children.Add($card)
+        Add-Tile2 $script:DrvList $card
     }
     $script:DrvBuilt = $true
     $script:DrvStatus.Text = 'Зелёный — свежий, жёлтый — проверить, красный — старый или сломан'

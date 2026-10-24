@@ -28,6 +28,8 @@ function Update-View {
     $q = $script:Search.Text.Trim()
     $all = $script:CurCat -eq 'Все'
     foreach ($h in $script:Headers.Values) { $h.Visibility = 'Collapsed' }
+    # видимые плитки раскладываем заново, иначе на месте скрытых остались бы дыры
+    foreach ($g in $script:CatGrids.Values) { $g.Children.Clear() }
     $shown = 0; $on = 0
     foreach ($it in $script:Items) {
         $text = "$($it.Title) $($it.Short) $($it.Desc) $($it.Warn)"
@@ -37,7 +39,7 @@ function Update-View {
                (-not $script:ChipSafe.IsChecked -or $it.Impact -eq 'none') -and
                (-not $script:ChipReboot.IsChecked -or $it.Reboot)
         $it.Card.Visibility = $(if ($vis) { 'Visible' } else { 'Collapsed' })
-        if ($vis) { $shown++; if ($it.State -eq 'on') { $on++ }; $script:Headers[$it.Cat].Visibility = 'Visible' }
+        if ($vis) { $shown++; if ($it.State -eq 'on') { $on++ }; $script:Headers[$it.Cat].Visibility = 'Visible'; Add-Tile2 $script:CatGrids[$it.Cat] $it.Card }
     }
     $script:Heading.Text = $(if ($all) { 'Все настройки' } else { $script:CurCat })
     $script:SubHeading.Text = $(if ($shown) { "Показано: $shown  ·  уже применено: $on" } else { 'Ничего не найдено. Попробуйте снять фильтры.' })
@@ -56,6 +58,9 @@ function Build-List {
         })
         if (-not $script:Headers.Count) { $h.Margin = '2,0,4,10' }
         $script:Headers[$cat] = $h; [void]$script:List.Children.Add($h)
+        $grid = New-Object Windows.Controls.Grid; $grid.Margin = '0,0,-10,0'
+        1..2 | ForEach-Object { $grid.ColumnDefinitions.Add((New-Object Windows.Controls.ColumnDefinition)) }
+        $script:CatGrids[$cat] = $grid; [void]$script:List.Children.Add($grid)
         foreach ($it in $inCat) {
             $card = New-Xaml $CardXaml
             $card.FindName('T').Text = $it.Title
@@ -73,7 +78,7 @@ function Build-List {
             $cb = $card.FindName('C'); $cb.Style = $script:Styles.Toggle; $cb.Tag = $it
             $cb.Add_Click({ Update-Card $this.Tag; Update-Pending })
             $it.Card = $card; $it.Toggle = $cb; $it.StatusTb = $card.FindName('S')
-            [void]$script:List.Children.Add($card)
+            Add-Tile2 $grid $card
         }
     }
 }
@@ -98,10 +103,21 @@ function Add-NavHeader([string]$text) {
 function Select-Nav([string]$tag) {
     foreach ($li in $script:Nav.Items) { if ($li.Tag -eq $tag) { $script:Nav.SelectedItem = $li; $script:Nav.ScrollIntoView($li); return } }
 }
+function Start-FadeIn($el) {
+    # проявление и сдвиг на 8 px снизу, 180 мс
+    $dur = [Windows.Duration][TimeSpan]::FromMilliseconds(180)
+    $ease = New-Object Windows.Media.Animation.QuadraticEase -Property @{ EasingMode = 'EaseOut' }
+    $tt = New-Object Windows.Media.TranslateTransform; $el.RenderTransform = $tt
+    $el.BeginAnimation([Windows.UIElement]::OpacityProperty, (New-Object Windows.Media.Animation.DoubleAnimation -Property @{ From = 0; To = 1; Duration = $dur; EasingFunction = $ease }))
+    $tt.BeginAnimation([Windows.Media.TranslateTransform]::YProperty, (New-Object Windows.Media.Animation.DoubleAnimation -Property @{ From = 8; To = 0; Duration = $dur; EasingFunction = $ease }))
+}
 function Show-View([string]$v) {
     $script:CurView = $v
     $views = @{ home = $script:HomeView; wizard = $script:WizardView; list = $script:ListView; history = $script:HistoryView; clean = $script:CleanView; startup = $script:StartupView; drivers = $script:DriversView; apps = $script:AppsView; fixes = $script:FixView }
     foreach ($k in $views.Keys) { $views[$k].Visibility = $(if ($k -eq $v) { 'Visible' } else { 'Collapsed' }) }
+    # анимируем только смену раздела или категории: Hide-Overlay снова показывает тот же раздел
+    $key = "$v|$(if ($v -eq 'list') { $script:CurCat })"
+    if ($key -ne $script:LastShown) { $script:LastShown = $key; Start-FadeIn $views[$v] }
     $script:Footer.Visibility = $(if ($v -eq 'list') { 'Visible' } else { 'Collapsed' })
     switch ($v) {
         'home' { Update-Home } 'history' { Build-History } 'list' { Update-Pending; Update-View }
@@ -127,9 +143,9 @@ function Update-Home {
     $script:HomeCount.Text = "$on из $($cfg.Count)"
     $script:HomeBar.Maximum = [Math]::Max(1, $cfg.Count); $script:HomeBar.Value = $on
     $apps = @($script:Items | Where-Object { $_.Appx -and $_.State -ne 'on' }).Count
-    $script:HomeApps.Text = "Встроенных приложений можно удалить: $apps"
+    $script:HomeApps.Text = "$apps"
     $snaps = @(Get-ChildItem -Path $script:DataDir -Filter 'snapshot-*.json' -ErrorAction SilentlyContinue).Count
-    $script:HomeSnaps.Text = "Изменений в истории для отката: $snaps"
+    $script:HomeSnaps.Text = "$snaps"
     $n = Get-PlanCount (Get-Answers)
     $script:HomePlan.Text = $(if ($n) { "Без вопросов уже можно улучшить настроек: $n. После ответов, скорее всего, больше." } else { 'Основное уже настроено. Ответы на вопросы помогут донастроить остальное.' })
     Update-RebootUi

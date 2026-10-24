@@ -1,6 +1,6 @@
 ﻿#region Cleanup UI
 $CleanXaml = @'
-<Border xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" CornerRadius="10" Margin="0,0,0,8" Background="#171B22" BorderBrush="#232831" BorderThickness="1">
+<Border xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" CornerRadius="10" Margin="0,0,10,10" Background="#171B22" BorderBrush="#232831" BorderThickness="1">
  <Grid>
   <Grid.ColumnDefinitions><ColumnDefinition Width="5"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
   <Border Name="Stripe" CornerRadius="9,0,0,9"/>
@@ -74,7 +74,7 @@ function Build-Clean {
         $cb = $card.FindName('C'); $cb.Style = $script:Styles.Toggle; $cb.IsChecked = $c.Default
         $cb.Add_Click({ Update-CleanTotal })
         $c.Toggle = $cb; $c.SizeTb = $card.FindName('Sz')
-        [void]$script:CleanList.Children.Add($card)
+        Add-Tile2 $script:CleanList $card
     }
     $script:CleanBuilt = $true
     Update-CleanSizes

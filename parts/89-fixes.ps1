@@ -156,54 +156,52 @@ function Invoke-Dns([string]$name) {
     Show-Result $(if ($bad.Count) { 'Готово, но есть ошибки' } else { 'DNS изменён' }) $ok $bad $false
 }
 
-function New-FixButton([string]$text, $tag, [scriptblock]$click, [string]$style = 'Btn') {
-    $b = New-Object Windows.Controls.Button
-    $b.Content = $text; $b.Tag = $tag; $b.Style = $script:Styles[$style]; $b.Margin = '0,0,0,6'; $b.MinWidth = 160; $b.HorizontalAlignment = 'Stretch'
-    $b.Add_Click($click)
-    $b
-}
-function Add-FixHeader([string]$text) {
+# вид как в «Полезных программах»: заголовок группы и плитки по $cols в ряд
+function Add-FixGroup([string]$text, [int]$cols = 3) {
     $h = New-Object Windows.Controls.TextBlock
-    $h.Text = $text; $h.FontSize = 11; $h.FontWeight = 'SemiBold'; $h.Foreground = Brush '#6B7380'; $h.Margin = '2,14,0,8'
+    $h.Text = $text; $h.FontSize = 11; $h.FontWeight = 'SemiBold'; $h.Foreground = Brush '#6B7380'; $h.Margin = '2,12,0,8'
     [void]$script:FixList.Children.Add($h)
+    $grid = New-Object Windows.Controls.Primitives.UniformGrid
+    $grid.Columns = $cols; $grid.Margin = '0,0,-10,0'
+    [void]$script:FixList.Children.Add($grid)
+    $grid
 }
-function New-FixCard([string]$kind, [string]$title, [string]$desc, [string]$color) {
-    $card = New-Xaml $DrvXaml
-    $card.FindName('K').Text = $kind; $card.FindName('T').Text = $title; $card.FindName('D').Text = $desc
-    $card.FindName('Stripe').Background = Brush $color
-    [void]$script:FixList.Children.Add($card)
-    $card
+function New-FixTile($grid, [string]$kind, [string]$title, [string]$desc, [string]$color) {
+    $tile = New-Xaml $AppTileXaml
+    $tile.FindName('K').Text = $kind; $tile.FindName('T').Text = $title; $tile.FindName('D').Text = $desc
+    $tile.FindName('Dot').Fill = Brush $color
+    [void]$grid.Children.Add($tile)
+    $tile
 }
 function Build-Fixes {
     $script:FixList.Children.Clear()
-    Add-FixHeader 'ЧАСТЫЕ ПРОБЛЕМЫ'
+    $grid = Add-FixGroup 'ЧАСТЫЕ ПРОБЛЕМЫ'
     foreach ($f in $FixCatalog) {
-        $card = New-FixCard $(if ($f.Reboot) { 'НУЖНА ПЕРЕЗАГРУЗКА' } else { 'ИСПРАВЛЕНИЕ' }) $f.Title $f.Desc '#4F8CFF'
-        [void]$card.FindName('Btns').Children.Add((New-FixButton 'Исправить' $f { Confirm-Fix $this.Tag } 'Primary'))
+        $tile = New-FixTile $grid $(if ($f.Reboot) { 'НУЖНА ПЕРЕЗАГРУЗКА' } else { 'ИСПРАВЛЕНИЕ' }) $f.Title $f.Desc '#4F8CFF'
+        [void]$tile.FindName('Btns').Children.Add((New-AppButton 'Исправить' $f 'Primary' { Confirm-Fix $this.Tag }))
     }
-    Add-FixHeader 'РЕМОНТ WINDOWS'
+    $grid = Add-FixGroup 'РЕМОНТ WINDOWS'
     foreach ($r in $RepairCatalog) {
-        $card = New-FixCard 'ДОЛГО' $r.Title $r.Desc '#D29922'
-        [void]$card.FindName('Btns').Children.Add((New-FixButton 'Запустить' $r.Cmd { Start-Process cmd.exe -ArgumentList "/c $($this.Tag)" } 'Primary'))
+        $tile = New-FixTile $grid 'ДОЛГО' $r.Title $r.Desc '#D29922'
+        [void]$tile.FindName('Btns').Children.Add((New-AppButton 'Запустить' $r.Cmd 'Primary' { Start-Process cmd.exe -ArgumentList "/c $($this.Tag)" }))
     }
-    Add-FixHeader 'DNS-СЕРВЕР'
-    $card = New-FixCard 'СЕТЬ' 'Сменить DNS' 'DNS превращает адреса сайтов в IP. Свой DNS иногда открывает сайты быстрее, а AdGuard ещё и режет рекламу. Прежний DNS сохранится в «Истории».' '#3FB950'
-    $script:DnsLabel = $card.FindName('A'); $script:DnsLabel.Foreground = Brush '#7FA8FF'; $script:DnsLabel.Text = 'Проверяю текущий DNS…'
+    # одна широкая плитка: четыре кнопки DNS в узкую не влезут
+    $grid = Add-FixGroup 'DNS-СЕРВЕР' 1
+    $card = New-FixTile $grid 'СЕТЬ' 'Сменить DNS' 'DNS превращает адреса сайтов в IP. Свой DNS иногда открывает сайты быстрее, а AdGuard ещё и режет рекламу. Прежний DNS сохранится в «Истории».' '#3FB950'
+    $script:DnsLabel = $card.FindName('K'); $script:DnsLabel.Foreground = Brush '#7FA8FF'; $script:DnsLabel.Text = 'Проверяю текущий DNS…'
     # Get-NetAdapter занимает до секунды — читаем в фоне
     Start-Bg 'dns' @('Get-DnsLabel', 'Get-DnsState', 'Get-DnsAdapters', 'Get-RegRaw', 'Format-RegVal') @{ DnsCatalog = $DnsCatalog } { param($sync) Get-DnsLabel } $null {
         param($s) $script:DnsLabel.Text = $(if ($s.Error) { 'Не удалось прочитать текущий DNS' } else { "$($s.Result[0])" })
     }
     $btns = $card.FindName('Btns')
-    foreach ($k in $DnsCatalog.Keys) { [void]$btns.Children.Add((New-FixButton $k $k { Invoke-Dns $this.Tag })) }
-    [void]$btns.Children.Add((New-FixButton 'Автоматически' '' { Invoke-Dns '' }))
-    Add-FixHeader 'КЛАССИЧЕСКИЕ ОКНА WINDOWS'
-    $wrap = New-Object Windows.Controls.WrapPanel
+    foreach ($k in $DnsCatalog.Keys) { [void]$btns.Children.Add((New-AppButton $k $k 'Btn' { Invoke-Dns $this.Tag })) }
+    [void]$btns.Children.Add((New-AppButton 'Автоматически' '' 'Btn' { Invoke-Dns '' }))
+    $grid = Add-FixGroup 'КЛАССИЧЕСКИЕ ОКНА WINDOWS'
     foreach ($k in $ClassicLinks.Keys) {
-        $b = New-FixButton $k $ClassicLinks[$k] { Start-Process $this.Tag }
-        $b.Margin = '0,0,8,8'; $b.MinWidth = 200; $b.HorizontalAlignment = 'Left'
-        [void]$wrap.Children.Add($b)
+        $b = New-AppButton $k $ClassicLinks[$k] 'Btn' { Start-Process $this.Tag }
+        $b.Margin = '0,0,10,10'; $b.Padding = '12,8'; $b.HorizontalAlignment = 'Stretch'
+        [void]$grid.Children.Add($b)
     }
-    [void]$script:FixList.Children.Add($wrap)
     $script:FixBuilt = $true
 }
 #endregion

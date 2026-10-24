@@ -55,6 +55,19 @@ $Xaml = @'
   <Style x:Key="Warn" TargetType="Button" BasedOn="{StaticResource Btn}">
    <Setter Property="Background" Value="#2E2610"/><Setter Property="BorderBrush" Value="#6B5418"/><Setter Property="Foreground" Value="#F2CC60"/>
   </Style>
+  <Style x:Key="Tile" TargetType="Button">
+   <Setter Property="Foreground" Value="#E6E8EB"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Margin" Value="0,0,10,10"/>
+   <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+   <Setter Property="Template"><Setter.Value>
+    <ControlTemplate TargetType="Button">
+     <Border x:Name="B" Background="#171B22" BorderBrush="#232831" BorderThickness="1" CornerRadius="10" Padding="16,14">
+      <ContentPresenter HorizontalAlignment="Stretch"/>
+     </Border>
+     <ControlTemplate.Triggers>
+      <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="B" Property="BorderBrush" Value="#4F8CFF"/><Setter TargetName="B" Property="Background" Value="#1A1F27"/></Trigger>
+     </ControlTemplate.Triggers>
+    </ControlTemplate></Setter.Value></Setter>
+  </Style>
   <Style x:Key="Link" TargetType="Button">
    <Setter Property="Foreground" Value="#7FA8FF"/><Setter Property="FontSize" Value="12"/><Setter Property="Cursor" Value="Hand"/>
    <Setter Property="Template"><Setter.Value>
@@ -148,22 +161,23 @@ $Xaml = @'
 
    <!-- Home -->
    <ScrollViewer x:Name="HomeView" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
-    <StackPanel Margin="40,34,40,28" MaxWidth="980" HorizontalAlignment="Left">
+    <StackPanel Margin="40,34,40,28" MaxWidth="900" HorizontalAlignment="Stretch">
      <TextBlock Text="Настроим Windows" FontSize="28" FontWeight="SemiBold"/>
-     <TextBlock Text="Ответьте на несколько вопросов «да/нет», проверьте, что изменится, и примените. Любое изменение можно откатить." Foreground="#8B93A1" FontSize="14" Margin="0,6,0,0" TextWrapping="Wrap"/>
-     <Border Background="#171B22" BorderBrush="#232831" BorderThickness="1" CornerRadius="14" Padding="24,20" Margin="0,22,0,0">
+     <TextBlock Text="Ускорение, приватность и порядок в системе. Любое изменение можно откатить." Foreground="#8B93A1" FontSize="14" Margin="0,6,0,0" TextWrapping="Wrap"/>
+     <Border Background="#16213A" BorderBrush="#2B4A86" BorderThickness="1" CornerRadius="16" Padding="28,24" Margin="0,22,0,0">
       <Grid>
-       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-       <StackPanel>
-        <StackPanel Orientation="Horizontal">
-         <TextBlock x:Name="HomeCount" FontSize="32" FontWeight="SemiBold"/>
-         <TextBlock Text="настроек уже применено" Foreground="#8B93A1" FontSize="14" Margin="12,0,0,6" VerticalAlignment="Bottom"/>
+       <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+       <Border Width="52" Height="52" CornerRadius="14" Background="#4F8CFF" VerticalAlignment="Top">
+        <TextBlock Text="&#xE945;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Foreground="White" FontSize="24" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+       </Border>
+       <StackPanel Grid.Column="1" Margin="20,0,0,0">
+        <TextBlock Text="Быстрая настройка" FontSize="20" FontWeight="SemiBold"/>
+        <TextBlock Text="Несколько вопросов «да/нет» о том, как вы пользуетесь компьютером. Железо определим сами. OknoTune подберёт настройки и перед применением покажет, что изменится." Foreground="#AEB8CC" FontSize="13" TextWrapping="Wrap" Margin="0,6,0,0"/>
+        <TextBlock x:Name="HomePlan" Foreground="#9DB4FF" FontSize="13" TextWrapping="Wrap" Margin="0,12,0,0"/>
+        <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+         <Button x:Name="BtnStart" Content="Начать" Style="{StaticResource Primary}" Padding="28,10" FontSize="14"/>
+         <Button x:Name="BtnManual" Content="Все настройки вручную" Style="{StaticResource Btn}" Margin="10,0,0,0" Padding="18,10"/>
         </StackPanel>
-        <ProgressBar x:Name="HomeBar" Height="6" Margin="0,12,24,0" Foreground="#4ADE80" Background="#232A35" BorderThickness="0"/>
-       </StackPanel>
-       <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="12,0,0,0">
-        <TextBlock x:Name="HomeApps" Foreground="#AEB4BF" FontSize="13"/>
-        <TextBlock x:Name="HomeSnaps" Foreground="#AEB4BF" FontSize="13" Margin="0,6,0,0"/>
        </StackPanel>
       </Grid>
      </Border>
@@ -174,29 +188,51 @@ $Xaml = @'
        <Button x:Name="BtnReboot2" Grid.Column="1" Content="Перезагрузить" Style="{StaticResource Warn}"/>
       </Grid>
      </Border>
-     <Border Background="#16213A" BorderBrush="#2B4A86" BorderThickness="1" CornerRadius="16" Padding="28,24" Margin="0,16,0,0">
-      <Grid>
-       <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-       <Border Width="52" Height="52" CornerRadius="14" Background="#4F8CFF" VerticalAlignment="Top">
-        <TextBlock Text="&#xE945;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Foreground="White" FontSize="24" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-       </Border>
-       <StackPanel Grid.Column="1" Margin="20,0,0,0">
-        <TextBlock Text="Быстрая настройка" FontSize="20" FontWeight="SemiBold"/>
-        <TextBlock Text="Несколько вопросов «да/нет» о том, как вы пользуетесь компьютером. Железо определим сами. OknoTune подберёт настройки и перед применением покажет, что изменится." Foreground="#AEB8CC" FontSize="13" TextWrapping="Wrap" Margin="0,6,0,0"/>
-        <TextBlock x:Name="HomePlan" Foreground="#9DB4FF" FontSize="13" Margin="0,12,0,0"/>
-        <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
-         <Button x:Name="BtnStart" Content="Начать" Style="{StaticResource Primary}" Padding="28,10" FontSize="14"/>
-         <Button x:Name="BtnManual" Content="Все настройки вручную" Style="{StaticResource Btn}" Margin="10,0,0,0" Padding="18,10"/>
-        </StackPanel>
+     <!-- плитки с Tag ведут в раздел меню с этим тегом (обработчик в 90-main) -->
+     <TextBlock Text="СОСТОЯНИЕ" FontSize="11" FontWeight="SemiBold" Foreground="#6B7380" Margin="2,24,0,8"/>
+     <UniformGrid Columns="3" Margin="0,0,-10,0">
+      <Button Style="{StaticResource Tile}" Tag="Все" ToolTip="Открыть все настройки">
+       <StackPanel>
+        <TextBlock Text="Применено настроек" FontSize="12" Foreground="#8B93A1"/>
+        <TextBlock x:Name="HomeCount" FontSize="24" FontWeight="SemiBold" Margin="0,4,0,0"/>
+        <ProgressBar x:Name="HomeBar" Height="4" Margin="0,8,0,0" Foreground="#4ADE80" Background="#232A35" BorderThickness="0"/>
        </StackPanel>
-      </Grid>
-     </Border>
-     <TextBlock Text="Что значат цвета" FontSize="15" FontWeight="SemiBold" Margin="0,24,0,10"/>
-     <UniformGrid Columns="2">
-      <StackPanel Orientation="Horizontal" Margin="0,0,0,10"><Border Width="4" Height="34" CornerRadius="2" Background="#3FB950"/><StackPanel Margin="12,0,0,0"><TextBlock Text="Ничего не теряете" FontWeight="SemiBold" FontSize="13"/><TextBlock Text="Включается автоматически" Foreground="#8B93A1" FontSize="12"/></StackPanel></StackPanel>
-      <StackPanel Orientation="Horizontal" Margin="0,0,0,10"><Border Width="4" Height="34" CornerRadius="2" Background="#D29922"/><StackPanel Margin="12,0,0,0"><TextBlock Text="Мелкие ограничения" FontWeight="SemiBold" FontSize="13"/><TextBlock Text="Что-то станет чуть иначе, написано на карточке" Foreground="#8B93A1" FontSize="12"/></StackPanel></StackPanel>
-      <StackPanel Orientation="Horizontal" Margin="0,0,0,10"><Border Width="4" Height="34" CornerRadius="2" Background="#F85149"/><StackPanel Margin="12,0,0,0"><TextBlock Text="Отключается функция" FontWeight="SemiBold" FontSize="13"/><TextBlock Text="Перестанет работать то, что указано" Foreground="#8B93A1" FontSize="12"/></StackPanel></StackPanel>
-      <StackPanel Orientation="Horizontal" Margin="0,0,0,10"><Border Width="4" Height="34" CornerRadius="2" Background="#A371F7"/><StackPanel Margin="12,0,0,0"><TextBlock Text="Удаление приложения" FontWeight="SemiBold" FontSize="13"/><TextBlock Text="Вернуть можно из Microsoft Store" Foreground="#8B93A1" FontSize="12"/></StackPanel></StackPanel>
+      </Button>
+      <Button Style="{StaticResource Tile}" Tag="Приложения" ToolTip="Открыть встроенные приложения">
+       <StackPanel>
+        <TextBlock Text="Встроенных приложений можно удалить" FontSize="12" Foreground="#8B93A1" TextTrimming="CharacterEllipsis"/>
+        <TextBlock x:Name="HomeApps" FontSize="24" FontWeight="SemiBold" Margin="0,4,0,0"/>
+       </StackPanel>
+      </Button>
+      <Button Style="{StaticResource Tile}" Tag="history" ToolTip="Открыть историю изменений">
+       <StackPanel>
+        <TextBlock Text="Изменений можно откатить" FontSize="12" Foreground="#8B93A1"/>
+        <TextBlock x:Name="HomeSnaps" FontSize="24" FontWeight="SemiBold" Margin="0,4,0,0"/>
+       </StackPanel>
+      </Button>
+     </UniformGrid>
+     <TextBlock Text="ИНСТРУМЕНТЫ" FontSize="11" FontWeight="SemiBold" Foreground="#6B7380" Margin="2,14,0,8"/>
+     <UniformGrid Columns="3" Margin="0,0,-10,0">
+      <Button Style="{StaticResource Tile}" Tag="clean">
+       <DockPanel><TextBlock Text="&#xE74D;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="20" Foreground="#7FA8FF" Margin="0,2,14,0" VerticalAlignment="Top"/>
+        <StackPanel><TextBlock Text="Очистка диска" FontSize="14" FontWeight="SemiBold"/><TextBlock Text="Временные файлы, кэш и корзина" FontSize="12" Foreground="#8B93A1" TextWrapping="Wrap" Margin="0,3,0,0"/></StackPanel></DockPanel>
+      </Button>
+      <Button Style="{StaticResource Tile}" Tag="fixes">
+       <DockPanel><TextBlock Text="&#xE9D9;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="20" Foreground="#7FA8FF" Margin="0,2,14,0" VerticalAlignment="Top"/>
+        <StackPanel><TextBlock Text="Исправления" FontSize="14" FontWeight="SemiBold"/><TextBlock Text="VPN, интернет, звук, принтер и другое" FontSize="12" Foreground="#8B93A1" TextWrapping="Wrap" Margin="0,3,0,0"/></StackPanel></DockPanel>
+      </Button>
+      <Button Style="{StaticResource Tile}" Tag="drivers">
+       <DockPanel><TextBlock Text="&#xE772;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="20" Foreground="#7FA8FF" Margin="0,2,14,0" VerticalAlignment="Top"/>
+        <StackPanel><TextBlock Text="Драйверы" FontSize="14" FontWeight="SemiBold"/><TextBlock Text="Возраст драйверов и где их скачать" FontSize="12" Foreground="#8B93A1" TextWrapping="Wrap" Margin="0,3,0,0"/></StackPanel></DockPanel>
+      </Button>
+      <Button Style="{StaticResource Tile}" Tag="startup">
+       <DockPanel><TextBlock Text="&#xE7E8;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="20" Foreground="#7FA8FF" Margin="0,2,14,0" VerticalAlignment="Top"/>
+        <StackPanel><TextBlock Text="Автозагрузка" FontSize="14" FontWeight="SemiBold"/><TextBlock Text="Что запускается вместе с Windows" FontSize="12" Foreground="#8B93A1" TextWrapping="Wrap" Margin="0,3,0,0"/></StackPanel></DockPanel>
+      </Button>
+      <Button Style="{StaticResource Tile}" Tag="apps">
+       <DockPanel><TextBlock Text="&#xE8F1;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="20" Foreground="#7FA8FF" Margin="0,2,14,0" VerticalAlignment="Top"/>
+        <StackPanel><TextBlock Text="Полезные программы" FontSize="14" FontWeight="SemiBold"/><TextBlock Text="Проверенные бесплатные программы" FontSize="12" Foreground="#8B93A1" TextWrapping="Wrap" Margin="0,3,0,0"/></StackPanel></DockPanel>
+      </Button>
      </UniformGrid>
     </StackPanel>
    </ScrollViewer>
@@ -293,7 +329,7 @@ $Xaml = @'
      </Border>
     </StackPanel>
     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="40,0,32,12">
-     <StackPanel x:Name="CleanList" MaxWidth="900" HorizontalAlignment="Stretch"/>
+     <Grid x:Name="CleanList" MaxWidth="910" Margin="0,0,-10,0" HorizontalAlignment="Stretch"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions></Grid>
     </ScrollViewer>
     <Border Grid.Row="2" Background="#13161C" BorderBrush="#1E232B" BorderThickness="0,1,0,0" Padding="40,14">
      <Grid>
@@ -319,7 +355,7 @@ $Xaml = @'
      <TextBlock Text="OknoTune ничего не скачивает сам: он определяет железо, показывает возраст драйверов и открывает страницу в браузере. Надёжнее всего — сайт производителя. driver.ru и поиск Google — неофициальные источники: скачивайте оттуда только если на сайте производителя драйвера нет, и проверяйте файл антивирусом." Foreground="#8B93A1" FontSize="13" Margin="0,6,0,0" TextWrapping="Wrap"/>
     </StackPanel>
     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="40,0,32,12">
-     <StackPanel x:Name="DrvList" MaxWidth="900" HorizontalAlignment="Stretch"/>
+     <Grid x:Name="DrvList" MaxWidth="910" Margin="0,0,-10,0" HorizontalAlignment="Stretch"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions></Grid>
     </ScrollViewer>
     <Border Grid.Row="2" Background="#13161C" BorderBrush="#1E232B" BorderThickness="0,1,0,0" Padding="40,14">
      <Grid>
@@ -428,7 +464,7 @@ $Xaml = @'
 '@
 
 $CardXaml = @'
-<Border xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" CornerRadius="10" Margin="0,0,0,10" Background="#171B22" BorderBrush="#232831" BorderThickness="1">
+<Border xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" CornerRadius="10" Margin="0,0,10,10" Background="#171B22" BorderBrush="#232831" BorderThickness="1">
  <Grid>
   <Grid.ColumnDefinitions><ColumnDefinition Width="5"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
   <Border Name="Stripe" CornerRadius="9,0,0,9"/>
@@ -513,6 +549,13 @@ foreach ($s in 'Toggle', 'Btn', 'Primary', 'Warn', 'Link', 'Seg') { $script:Styl
 $bc = New-Object Windows.Media.BrushConverter
 function Brush([string]$hex) { $bc.ConvertFromString($hex) }
 function New-Xaml([string]$x) { [Windows.Markup.XamlReader]::Parse($x) }
+# плитки по две в ряд: у каждой строки своя высота (UniformGrid растянул бы все до самой высокой)
+function Add-Tile2([Windows.Controls.Grid]$grid, $el) {
+    $i = $grid.Children.Count
+    while ($grid.RowDefinitions.Count -le [Math]::Floor($i / 2)) { $grid.RowDefinitions.Add((New-Object Windows.Controls.RowDefinition -Property @{ Height = 'Auto' })) }
+    [Windows.Controls.Grid]::SetRow($el, [Math]::Floor($i / 2)); [Windows.Controls.Grid]::SetColumn($el, $i % 2)
+    [void]$grid.Children.Add($el)
+}
 
 $Cats = [ordered]@{ 'Приватность' = 0xE72E; 'Реклама' = 0xE789; 'Игры' = 0xE7FC; 'Система' = 0xE713; 'Обновления' = 0xE777; 'Службы' = 0xE90F
                     'Безопасность' = 0xEA18; 'Удобство' = 0xE771; 'Компоненты' = 0xE7B8; 'Приложения' = 0xE719 }
@@ -520,7 +563,7 @@ $ImpactColor = @{ none = '#3FB950'; minor = '#D29922'; breaks = '#F85149'; remov
 $ImpactText = @{ none = 'Ничего не теряете'; minor = 'Мелкие ограничения'; breaks = 'Отключается функция Windows'; remove = 'Удаление приложения' }
 $WarnColor = @{ minor = '#E3B341'; breaks = '#FF7B72'; remove = '#C4A5FF' }
 $script:CurCat = 'Все'; $script:CurView = 'home'; $script:Answers = @{}; $script:NavBusy = $false
-$script:Headers = @{}; $script:NavItems = @{}; $script:QRadios = @{}
+$script:Headers = @{}; $script:CatGrids = @{}; $script:NavItems = @{}; $script:QRadios = @{}
 $script:Ru = [Globalization.CultureInfo]'ru-RU'
 
 function Pump { $script:Win.Dispatcher.Invoke([Action] {}, [Windows.Threading.DispatcherPriority]::Background) }

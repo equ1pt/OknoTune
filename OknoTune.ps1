@@ -1212,6 +1212,19 @@ $Xaml = @'
   <Style x:Key="Warn" TargetType="Button" BasedOn="{StaticResource Btn}">
    <Setter Property="Background" Value="#2E2610"/><Setter Property="BorderBrush" Value="#6B5418"/><Setter Property="Foreground" Value="#F2CC60"/>
   </Style>
+  <Style x:Key="Tile" TargetType="Button">
+   <Setter Property="Foreground" Value="#E6E8EB"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Margin" Value="0,0,10,10"/>
+   <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+   <Setter Property="Template"><Setter.Value>
+    <ControlTemplate TargetType="Button">
+     <Border x:Name="B" Background="#171B22" BorderBrush="#232831" BorderThickness="1" CornerRadius="10" Padding="16,14">
+      <ContentPresenter HorizontalAlignment="Stretch"/>
+     </Border>
+     <ControlTemplate.Triggers>
+      <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="B" Property="BorderBrush" Value="#4F8CFF"/><Setter TargetName="B" Property="Background" Value="#1A1F27"/></Trigger>
+     </ControlTemplate.Triggers>
+    </ControlTemplate></Setter.Value></Setter>
+  </Style>
   <Style x:Key="Link" TargetType="Button">
    <Setter Property="Foreground" Value="#7FA8FF"/><Setter Property="FontSize" Value="12"/><Setter Property="Cursor" Value="Hand"/>
    <Setter Property="Template"><Setter.Value>
@@ -1305,22 +1318,23 @@ $Xaml = @'
 
    <!-- Home -->
    <ScrollViewer x:Name="HomeView" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
-    <StackPanel Margin="40,34,40,28" MaxWidth="980" HorizontalAlignment="Left">
+    <StackPanel Margin="40,34,40,28" MaxWidth="900" HorizontalAlignment="Stretch">
      <TextBlock Text="Настроим Windows" FontSize="28" FontWeight="SemiBold"/>
-     <TextBlock Text="Ответьте на несколько вопросов «да/нет», проверьте, что изменится, и примените. Любое изменение можно откатить." Foreground="#8B93A1" FontSize="14" Margin="0,6,0,0" TextWrapping="Wrap"/>
-     <Border Background="#171B22" BorderBrush="#232831" BorderThickness="1" CornerRadius="14" Padding="24,20" Margin="0,22,0,0">
+     <TextBlock Text="Ускорение, приватность и порядок в системе. Любое изменение можно откатить." Foreground="#8B93A1" FontSize="14" Margin="0,6,0,0" TextWrapping="Wrap"/>
+     <Border Background="#16213A" BorderBrush="#2B4A86" BorderThickness="1" CornerRadius="16" Padding="28,24" Margin="0,22,0,0">
       <Grid>
-       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-       <StackPanel>
-        <StackPanel Orientation="Horizontal">
-         <TextBlock x:Name="HomeCount" FontSize="32" FontWeight="SemiBold"/>
-         <TextBlock Text="настроек уже применено" Foreground="#8B93A1" FontSize="14" Margin="12,0,0,6" VerticalAlignment="Bottom"/>
+       <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+       <Border Width="52" Height="52" CornerRadius="14" Background="#4F8CFF" VerticalAlignment="Top">
+        <TextBlock Text="&#xE945;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Foreground="White" FontSize="24" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+       </Border>
+       <StackPanel Grid.Column="1" Margin="20,0,0,0">
+        <TextBlock Text="Быстрая настройка" FontSize="20" FontWeight="SemiBold"/>
+        <TextBlock Text="Несколько вопросов «да/нет» о том, как вы пользуетесь компьютером. Железо определим сами. OknoTune подберёт настройки и перед применением покажет, что изменится." Foreground="#AEB8CC" FontSize="13" TextWrapping="Wrap" Margin="0,6,0,0"/>
+        <TextBlock x:Name="HomePlan" Foreground="#9DB4FF" FontSize="13" TextWrapping="Wrap" Margin="0,12,0,0"/>
+        <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+         <Button x:Name="BtnStart" Content="Начать" Style="{StaticResource Primary}" Padding="28,10" FontSize="14"/>
+         <Button x:Name="BtnManual" Content="Все настройки вручную" Style="{StaticResource Btn}" Margin="10,0,0,0" Padding="18,10"/>
         </StackPanel>
-        <ProgressBar x:Name="HomeBar" Height="6" Margin="0,12,24,0" Foreground="#4ADE80" Background="#232A35" BorderThickness="0"/>
-       </StackPanel>
-       <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="12,0,0,0">
-        <TextBlock x:Name="HomeApps" Foreground="#AEB4BF" FontSize="13"/>
-        <TextBlock x:Name="HomeSnaps" Foreground="#AEB4BF" FontSize="13" Margin="0,6,0,0"/>
        </StackPanel>
       </Grid>
      </Border>
@@ -1331,29 +1345,51 @@ $Xaml = @'
        <Button x:Name="BtnReboot2" Grid.Column="1" Content="Перезагрузить" Style="{StaticResource Warn}"/>
       </Grid>
      </Border>
-     <Border Background="#16213A" BorderBrush="#2B4A86" BorderThickness="1" CornerRadius="16" Padding="28,24" Margin="0,16,0,0">
-      <Grid>
-       <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-       <Border Width="52" Height="52" CornerRadius="14" Background="#4F8CFF" VerticalAlignment="Top">
-        <TextBlock Text="&#xE945;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Foreground="White" FontSize="24" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-       </Border>
-       <StackPanel Grid.Column="1" Margin="20,0,0,0">
-        <TextBlock Text="Быстрая настройка" FontSize="20" FontWeight="SemiBold"/>
-        <TextBlock Text="Несколько вопросов «да/нет» о том, как вы пользуетесь компьютером. Железо определим сами. OknoTune подберёт настройки и перед применением покажет, что изменится." Foreground="#AEB8CC" FontSize="13" TextWrapping="Wrap" Margin="0,6,0,0"/>
-        <TextBlock x:Name="HomePlan" Foreground="#9DB4FF" FontSize="13" Margin="0,12,0,0"/>
-        <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
-         <Button x:Name="BtnStart" Content="Начать" Style="{StaticResource Primary}" Padding="28,10" FontSize="14"/>
-         <Button x:Name="BtnManual" Content="Все настройки вручную" Style="{StaticResource Btn}" Margin="10,0,0,0" Padding="18,10"/>
-        </StackPanel>
+     <!-- плитки с Tag ведут в раздел меню с этим тегом (обработчик в 90-main) -->
+     <TextBlock Text="СОСТОЯНИЕ" FontSize="11" FontWeight="SemiBold" Foreground="#6B7380" Margin="2,24,0,8"/>
+     <UniformGrid Columns="3" Margin="0,0,-10,0">
+      <Button Style="{StaticResource Tile}" Tag="Все" ToolTip="Открыть все настройки">
+       <StackPanel>
+        <TextBlock Text="Применено настроек" FontSize="12" Foreground="#8B93A1"/>
+        <TextBlock x:Name="HomeCount" FontSize="24" FontWeight="SemiBold" Margin="0,4,0,0"/>
+        <ProgressBar x:Name="HomeBar" Height="4" Margin="0,8,0,0" Foreground="#4ADE80" Background="#232A35" BorderThickness="0"/>
        </StackPanel>
-      </Grid>
-     </Border>
-     <TextBlock Text="Что значат цвета" FontSize="15" FontWeight="SemiBold" Margin="0,24,0,10"/>
-     <UniformGrid Columns="2">
-      <StackPanel Orientation="Horizontal" Margin="0,0,0,10"><Border Width="4" Height="34" CornerRadius="2" Background="#3FB950"/><StackPanel Margin="12,0,0,0"><TextBlock Text="Ничего не теряете" FontWeight="SemiBold" FontSize="13"/><TextBlock Text="Включается автоматически" Foreground="#8B93A1" FontSize="12"/></StackPanel></StackPanel>
-      <StackPanel Orientation="Horizontal" Margin="0,0,0,10"><Border Width="4" Height="34" CornerRadius="2" Background="#D29922"/><StackPanel Margin="12,0,0,0"><TextBlock Text="Мелкие ограничения" FontWeight="SemiBold" FontSize="13"/><TextBlock Text="Что-то станет чуть иначе, написано на карточке" Foreground="#8B93A1" FontSize="12"/></StackPanel></StackPanel>
-      <StackPanel Orientation="Horizontal" Margin="0,0,0,10"><Border Width="4" Height="34" CornerRadius="2" Background="#F85149"/><StackPanel Margin="12,0,0,0"><TextBlock Text="Отключается функция" FontWeight="SemiBold" FontSize="13"/><TextBlock Text="Перестанет работать то, что указано" Foreground="#8B93A1" FontSize="12"/></StackPanel></StackPanel>
-      <StackPanel Orientation="Horizontal" Margin="0,0,0,10"><Border Width="4" Height="34" CornerRadius="2" Background="#A371F7"/><StackPanel Margin="12,0,0,0"><TextBlock Text="Удаление приложения" FontWeight="SemiBold" FontSize="13"/><TextBlock Text="Вернуть можно из Microsoft Store" Foreground="#8B93A1" FontSize="12"/></StackPanel></StackPanel>
+      </Button>
+      <Button Style="{StaticResource Tile}" Tag="Приложения" ToolTip="Открыть встроенные приложения">
+       <StackPanel>
+        <TextBlock Text="Встроенных приложений можно удалить" FontSize="12" Foreground="#8B93A1" TextTrimming="CharacterEllipsis"/>
+        <TextBlock x:Name="HomeApps" FontSize="24" FontWeight="SemiBold" Margin="0,4,0,0"/>
+       </StackPanel>
+      </Button>
+      <Button Style="{StaticResource Tile}" Tag="history" ToolTip="Открыть историю изменений">
+       <StackPanel>
+        <TextBlock Text="Изменений можно откатить" FontSize="12" Foreground="#8B93A1"/>
+        <TextBlock x:Name="HomeSnaps" FontSize="24" FontWeight="SemiBold" Margin="0,4,0,0"/>
+       </StackPanel>
+      </Button>
+     </UniformGrid>
+     <TextBlock Text="ИНСТРУМЕНТЫ" FontSize="11" FontWeight="SemiBold" Foreground="#6B7380" Margin="2,14,0,8"/>
+     <UniformGrid Columns="3" Margin="0,0,-10,0">
+      <Button Style="{StaticResource Tile}" Tag="clean">
+       <DockPanel><TextBlock Text="&#xE74D;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="20" Foreground="#7FA8FF" Margin="0,2,14,0" VerticalAlignment="Top"/>
+        <StackPanel><TextBlock Text="Очистка диска" FontSize="14" FontWeight="SemiBold"/><TextBlock Text="Временные файлы, кэш и корзина" FontSize="12" Foreground="#8B93A1" TextWrapping="Wrap" Margin="0,3,0,0"/></StackPanel></DockPanel>
+      </Button>
+      <Button Style="{StaticResource Tile}" Tag="fixes">
+       <DockPanel><TextBlock Text="&#xE9D9;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="20" Foreground="#7FA8FF" Margin="0,2,14,0" VerticalAlignment="Top"/>
+        <StackPanel><TextBlock Text="Исправления" FontSize="14" FontWeight="SemiBold"/><TextBlock Text="VPN, интернет, звук, принтер и другое" FontSize="12" Foreground="#8B93A1" TextWrapping="Wrap" Margin="0,3,0,0"/></StackPanel></DockPanel>
+      </Button>
+      <Button Style="{StaticResource Tile}" Tag="drivers">
+       <DockPanel><TextBlock Text="&#xE772;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="20" Foreground="#7FA8FF" Margin="0,2,14,0" VerticalAlignment="Top"/>
+        <StackPanel><TextBlock Text="Драйверы" FontSize="14" FontWeight="SemiBold"/><TextBlock Text="Возраст драйверов и где их скачать" FontSize="12" Foreground="#8B93A1" TextWrapping="Wrap" Margin="0,3,0,0"/></StackPanel></DockPanel>
+      </Button>
+      <Button Style="{StaticResource Tile}" Tag="startup">
+       <DockPanel><TextBlock Text="&#xE7E8;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="20" Foreground="#7FA8FF" Margin="0,2,14,0" VerticalAlignment="Top"/>
+        <StackPanel><TextBlock Text="Автозагрузка" FontSize="14" FontWeight="SemiBold"/><TextBlock Text="Что запускается вместе с Windows" FontSize="12" Foreground="#8B93A1" TextWrapping="Wrap" Margin="0,3,0,0"/></StackPanel></DockPanel>
+      </Button>
+      <Button Style="{StaticResource Tile}" Tag="apps">
+       <DockPanel><TextBlock Text="&#xE8F1;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="20" Foreground="#7FA8FF" Margin="0,2,14,0" VerticalAlignment="Top"/>
+        <StackPanel><TextBlock Text="Полезные программы" FontSize="14" FontWeight="SemiBold"/><TextBlock Text="Проверенные бесплатные программы" FontSize="12" Foreground="#8B93A1" TextWrapping="Wrap" Margin="0,3,0,0"/></StackPanel></DockPanel>
+      </Button>
      </UniformGrid>
     </StackPanel>
    </ScrollViewer>
@@ -1450,7 +1486,7 @@ $Xaml = @'
      </Border>
     </StackPanel>
     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="40,0,32,12">
-     <StackPanel x:Name="CleanList" MaxWidth="900" HorizontalAlignment="Stretch"/>
+     <Grid x:Name="CleanList" MaxWidth="910" Margin="0,0,-10,0" HorizontalAlignment="Stretch"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions></Grid>
     </ScrollViewer>
     <Border Grid.Row="2" Background="#13161C" BorderBrush="#1E232B" BorderThickness="0,1,0,0" Padding="40,14">
      <Grid>
@@ -1476,7 +1512,7 @@ $Xaml = @'
      <TextBlock Text="OknoTune ничего не скачивает сам: он определяет железо, показывает возраст драйверов и открывает страницу в браузере. Надёжнее всего — сайт производителя. driver.ru и поиск Google — неофициальные источники: скачивайте оттуда только если на сайте производителя драйвера нет, и проверяйте файл антивирусом." Foreground="#8B93A1" FontSize="13" Margin="0,6,0,0" TextWrapping="Wrap"/>
     </StackPanel>
     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="40,0,32,12">
-     <StackPanel x:Name="DrvList" MaxWidth="900" HorizontalAlignment="Stretch"/>
+     <Grid x:Name="DrvList" MaxWidth="910" Margin="0,0,-10,0" HorizontalAlignment="Stretch"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions></Grid>
     </ScrollViewer>
     <Border Grid.Row="2" Background="#13161C" BorderBrush="#1E232B" BorderThickness="0,1,0,0" Padding="40,14">
      <Grid>
@@ -1585,7 +1621,7 @@ $Xaml = @'
 '@
 
 $CardXaml = @'
-<Border xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" CornerRadius="10" Margin="0,0,0,10" Background="#171B22" BorderBrush="#232831" BorderThickness="1">
+<Border xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" CornerRadius="10" Margin="0,0,10,10" Background="#171B22" BorderBrush="#232831" BorderThickness="1">
  <Grid>
   <Grid.ColumnDefinitions><ColumnDefinition Width="5"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
   <Border Name="Stripe" CornerRadius="9,0,0,9"/>
@@ -1670,6 +1706,13 @@ foreach ($s in 'Toggle', 'Btn', 'Primary', 'Warn', 'Link', 'Seg') { $script:Styl
 $bc = New-Object Windows.Media.BrushConverter
 function Brush([string]$hex) { $bc.ConvertFromString($hex) }
 function New-Xaml([string]$x) { [Windows.Markup.XamlReader]::Parse($x) }
+# плитки по две в ряд: у каждой строки своя высота (UniformGrid растянул бы все до самой высокой)
+function Add-Tile2([Windows.Controls.Grid]$grid, $el) {
+    $i = $grid.Children.Count
+    while ($grid.RowDefinitions.Count -le [Math]::Floor($i / 2)) { $grid.RowDefinitions.Add((New-Object Windows.Controls.RowDefinition -Property @{ Height = 'Auto' })) }
+    [Windows.Controls.Grid]::SetRow($el, [Math]::Floor($i / 2)); [Windows.Controls.Grid]::SetColumn($el, $i % 2)
+    [void]$grid.Children.Add($el)
+}
 
 $Cats = [ordered]@{ 'Приватность' = 0xE72E; 'Реклама' = 0xE789; 'Игры' = 0xE7FC; 'Система' = 0xE713; 'Обновления' = 0xE777; 'Службы' = 0xE90F
                     'Безопасность' = 0xEA18; 'Удобство' = 0xE771; 'Компоненты' = 0xE7B8; 'Приложения' = 0xE719 }
@@ -1677,7 +1720,7 @@ $ImpactColor = @{ none = '#3FB950'; minor = '#D29922'; breaks = '#F85149'; remov
 $ImpactText = @{ none = 'Ничего не теряете'; minor = 'Мелкие ограничения'; breaks = 'Отключается функция Windows'; remove = 'Удаление приложения' }
 $WarnColor = @{ minor = '#E3B341'; breaks = '#FF7B72'; remove = '#C4A5FF' }
 $script:CurCat = 'Все'; $script:CurView = 'home'; $script:Answers = @{}; $script:NavBusy = $false
-$script:Headers = @{}; $script:NavItems = @{}; $script:QRadios = @{}
+$script:Headers = @{}; $script:CatGrids = @{}; $script:NavItems = @{}; $script:QRadios = @{}
 $script:Ru = [Globalization.CultureInfo]'ru-RU'
 
 function Pump { $script:Win.Dispatcher.Invoke([Action] {}, [Windows.Threading.DispatcherPriority]::Background) }
@@ -1830,6 +1873,8 @@ function Update-View {
     $q = $script:Search.Text.Trim()
     $all = $script:CurCat -eq 'Все'
     foreach ($h in $script:Headers.Values) { $h.Visibility = 'Collapsed' }
+    # видимые плитки раскладываем заново, иначе на месте скрытых остались бы дыры
+    foreach ($g in $script:CatGrids.Values) { $g.Children.Clear() }
     $shown = 0; $on = 0
     foreach ($it in $script:Items) {
         $text = "$($it.Title) $($it.Short) $($it.Desc) $($it.Warn)"
@@ -1839,7 +1884,7 @@ function Update-View {
                (-not $script:ChipSafe.IsChecked -or $it.Impact -eq 'none') -and
                (-not $script:ChipReboot.IsChecked -or $it.Reboot)
         $it.Card.Visibility = $(if ($vis) { 'Visible' } else { 'Collapsed' })
-        if ($vis) { $shown++; if ($it.State -eq 'on') { $on++ }; $script:Headers[$it.Cat].Visibility = 'Visible' }
+        if ($vis) { $shown++; if ($it.State -eq 'on') { $on++ }; $script:Headers[$it.Cat].Visibility = 'Visible'; Add-Tile2 $script:CatGrids[$it.Cat] $it.Card }
     }
     $script:Heading.Text = $(if ($all) { 'Все настройки' } else { $script:CurCat })
     $script:SubHeading.Text = $(if ($shown) { "Показано: $shown  ·  уже применено: $on" } else { 'Ничего не найдено. Попробуйте снять фильтры.' })
@@ -1858,6 +1903,9 @@ function Build-List {
         })
         if (-not $script:Headers.Count) { $h.Margin = '2,0,4,10' }
         $script:Headers[$cat] = $h; [void]$script:List.Children.Add($h)
+        $grid = New-Object Windows.Controls.Grid; $grid.Margin = '0,0,-10,0'
+        1..2 | ForEach-Object { $grid.ColumnDefinitions.Add((New-Object Windows.Controls.ColumnDefinition)) }
+        $script:CatGrids[$cat] = $grid; [void]$script:List.Children.Add($grid)
         foreach ($it in $inCat) {
             $card = New-Xaml $CardXaml
             $card.FindName('T').Text = $it.Title
@@ -1875,7 +1923,7 @@ function Build-List {
             $cb = $card.FindName('C'); $cb.Style = $script:Styles.Toggle; $cb.Tag = $it
             $cb.Add_Click({ Update-Card $this.Tag; Update-Pending })
             $it.Card = $card; $it.Toggle = $cb; $it.StatusTb = $card.FindName('S')
-            [void]$script:List.Children.Add($card)
+            Add-Tile2 $grid $card
         }
     }
 }
@@ -1900,10 +1948,21 @@ function Add-NavHeader([string]$text) {
 function Select-Nav([string]$tag) {
     foreach ($li in $script:Nav.Items) { if ($li.Tag -eq $tag) { $script:Nav.SelectedItem = $li; $script:Nav.ScrollIntoView($li); return } }
 }
+function Start-FadeIn($el) {
+    # проявление и сдвиг на 8 px снизу, 180 мс
+    $dur = [Windows.Duration][TimeSpan]::FromMilliseconds(180)
+    $ease = New-Object Windows.Media.Animation.QuadraticEase -Property @{ EasingMode = 'EaseOut' }
+    $tt = New-Object Windows.Media.TranslateTransform; $el.RenderTransform = $tt
+    $el.BeginAnimation([Windows.UIElement]::OpacityProperty, (New-Object Windows.Media.Animation.DoubleAnimation -Property @{ From = 0; To = 1; Duration = $dur; EasingFunction = $ease }))
+    $tt.BeginAnimation([Windows.Media.TranslateTransform]::YProperty, (New-Object Windows.Media.Animation.DoubleAnimation -Property @{ From = 8; To = 0; Duration = $dur; EasingFunction = $ease }))
+}
 function Show-View([string]$v) {
     $script:CurView = $v
     $views = @{ home = $script:HomeView; wizard = $script:WizardView; list = $script:ListView; history = $script:HistoryView; clean = $script:CleanView; startup = $script:StartupView; drivers = $script:DriversView; apps = $script:AppsView; fixes = $script:FixView }
     foreach ($k in $views.Keys) { $views[$k].Visibility = $(if ($k -eq $v) { 'Visible' } else { 'Collapsed' }) }
+    # анимируем только смену раздела или категории: Hide-Overlay снова показывает тот же раздел
+    $key = "$v|$(if ($v -eq 'list') { $script:CurCat })"
+    if ($key -ne $script:LastShown) { $script:LastShown = $key; Start-FadeIn $views[$v] }
     $script:Footer.Visibility = $(if ($v -eq 'list') { 'Visible' } else { 'Collapsed' })
     switch ($v) {
         'home' { Update-Home } 'history' { Build-History } 'list' { Update-Pending; Update-View }
@@ -1929,9 +1988,9 @@ function Update-Home {
     $script:HomeCount.Text = "$on из $($cfg.Count)"
     $script:HomeBar.Maximum = [Math]::Max(1, $cfg.Count); $script:HomeBar.Value = $on
     $apps = @($script:Items | Where-Object { $_.Appx -and $_.State -ne 'on' }).Count
-    $script:HomeApps.Text = "Встроенных приложений можно удалить: $apps"
+    $script:HomeApps.Text = "$apps"
     $snaps = @(Get-ChildItem -Path $script:DataDir -Filter 'snapshot-*.json' -ErrorAction SilentlyContinue).Count
-    $script:HomeSnaps.Text = "Изменений в истории для отката: $snaps"
+    $script:HomeSnaps.Text = "$snaps"
     $n = Get-PlanCount (Get-Answers)
     $script:HomePlan.Text = $(if ($n) { "Без вопросов уже можно улучшить настроек: $n. После ответов, скорее всего, больше." } else { 'Основное уже настроено. Ответы на вопросы помогут донастроить остальное.' })
     Update-RebootUi
@@ -2247,7 +2306,7 @@ function Open-Report {
 
 #region Cleanup UI
 $CleanXaml = @'
-<Border xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" CornerRadius="10" Margin="0,0,0,8" Background="#171B22" BorderBrush="#232831" BorderThickness="1">
+<Border xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" CornerRadius="10" Margin="0,0,10,10" Background="#171B22" BorderBrush="#232831" BorderThickness="1">
  <Grid>
   <Grid.ColumnDefinitions><ColumnDefinition Width="5"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
   <Border Name="Stripe" CornerRadius="9,0,0,9"/>
@@ -2321,7 +2380,7 @@ function Build-Clean {
         $cb = $card.FindName('C'); $cb.Style = $script:Styles.Toggle; $cb.IsChecked = $c.Default
         $cb.Add_Click({ Update-CleanTotal })
         $c.Toggle = $cb; $c.SizeTb = $card.FindName('Sz')
-        [void]$script:CleanList.Children.Add($card)
+        Add-Tile2 $script:CleanList $card
     }
     $script:CleanBuilt = $true
     Update-CleanSizes
@@ -2453,17 +2512,19 @@ function Invoke-StartupApply {
 
 #region Drivers UI
 $DrvXaml = @'
-<Border xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" CornerRadius="10" Margin="0,0,0,10" Background="#171B22" BorderBrush="#232831" BorderThickness="1">
+<Border xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" CornerRadius="10" Margin="0,0,10,10" Background="#171B22" BorderBrush="#232831" BorderThickness="1">
  <Grid>
-  <Grid.ColumnDefinitions><ColumnDefinition Width="5"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+  <Grid.ColumnDefinitions><ColumnDefinition Width="5"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
   <Border Name="Stripe" CornerRadius="9,0,0,9"/>
-  <StackPanel Grid.Column="1" Margin="16,13,0,13">
-   <TextBlock Name="K" FontSize="11" FontWeight="SemiBold" Foreground="#6B7380"/>
-   <TextBlock Name="T" FontSize="15" FontWeight="SemiBold" Foreground="#E6E8EB" TextWrapping="Wrap" Margin="0,4,0,0"/>
-   <TextBlock Name="D" FontSize="13" Foreground="#8B93A1" TextWrapping="Wrap" Margin="0,4,0,0"/>
-   <TextBlock Name="A" FontSize="12" Margin="0,6,0,0"/>
-  </StackPanel>
-  <StackPanel Name="Btns" Grid.Column="2" VerticalAlignment="Center" Margin="20,0,18,0"/>
+  <DockPanel Grid.Column="1" Margin="14,12,14,12">
+   <WrapPanel Name="Btns" DockPanel.Dock="Bottom" Margin="0,10,0,-6"/>
+   <StackPanel>
+    <TextBlock Name="K" FontSize="11" FontWeight="SemiBold" Foreground="#6B7380"/>
+    <TextBlock Name="T" FontSize="14" FontWeight="SemiBold" Foreground="#E6E8EB" TextWrapping="Wrap" Margin="0,4,0,0"/>
+    <TextBlock Name="D" FontSize="12" Foreground="#8B93A1" TextWrapping="Wrap" Margin="0,4,0,0"/>
+    <TextBlock Name="A" FontSize="12" TextWrapping="Wrap" Margin="0,6,0,0"/>
+   </StackPanel>
+  </DockPanel>
  </Grid>
 </Border>
 '@
@@ -2512,13 +2573,11 @@ function Show-Drivers($cards) {
         $a = $card.FindName('A'); $a.Text = $ageText; $a.Foreground = Brush $(if ($color -eq '#3FB950') { '#7EE2A0' } elseif ($color -eq '#D29922') { '#E3B341' } else { '#FF7B72' })
         $btns = $card.FindName('Btns'); $first = $true
         foreach ($b in $d.Buttons) {
-            $btn = New-Object Windows.Controls.Button
-            $btn.Content = $b[0]; $btn.Tag = $b[1]; $btn.Margin = '0,0,0,6'; $btn.HorizontalAlignment = 'Stretch'; $btn.MinWidth = 220; $btn.ToolTip = $b[1]
-            $btn.Style = $script:Styles[$(if ($first) { 'Primary' } else { 'Btn' })]; $first = $false
-            $btn.Add_Click({ Open-Url $this.Tag })
+            $btn = New-AppButton $b[0] $b[1] $(if ($first) { 'Primary' } else { 'Btn' }) { Open-Url $this.Tag }
+            $btn.Margin = '0,0,6,6'; $btn.ToolTip = $b[1]; $first = $false
             [void]$btns.Children.Add($btn)
         }
-        [void]$script:DrvList.Children.Add($card)
+        Add-Tile2 $script:DrvList $card
     }
     $script:DrvBuilt = $true
     $script:DrvStatus.Text = 'Зелёный — свежий, жёлтый — проверить, красный — старый или сломан'
@@ -2788,54 +2847,52 @@ function Invoke-Dns([string]$name) {
     Show-Result $(if ($bad.Count) { 'Готово, но есть ошибки' } else { 'DNS изменён' }) $ok $bad $false
 }
 
-function New-FixButton([string]$text, $tag, [scriptblock]$click, [string]$style = 'Btn') {
-    $b = New-Object Windows.Controls.Button
-    $b.Content = $text; $b.Tag = $tag; $b.Style = $script:Styles[$style]; $b.Margin = '0,0,0,6'; $b.MinWidth = 160; $b.HorizontalAlignment = 'Stretch'
-    $b.Add_Click($click)
-    $b
-}
-function Add-FixHeader([string]$text) {
+# вид как в «Полезных программах»: заголовок группы и плитки по $cols в ряд
+function Add-FixGroup([string]$text, [int]$cols = 3) {
     $h = New-Object Windows.Controls.TextBlock
-    $h.Text = $text; $h.FontSize = 11; $h.FontWeight = 'SemiBold'; $h.Foreground = Brush '#6B7380'; $h.Margin = '2,14,0,8'
+    $h.Text = $text; $h.FontSize = 11; $h.FontWeight = 'SemiBold'; $h.Foreground = Brush '#6B7380'; $h.Margin = '2,12,0,8'
     [void]$script:FixList.Children.Add($h)
+    $grid = New-Object Windows.Controls.Primitives.UniformGrid
+    $grid.Columns = $cols; $grid.Margin = '0,0,-10,0'
+    [void]$script:FixList.Children.Add($grid)
+    $grid
 }
-function New-FixCard([string]$kind, [string]$title, [string]$desc, [string]$color) {
-    $card = New-Xaml $DrvXaml
-    $card.FindName('K').Text = $kind; $card.FindName('T').Text = $title; $card.FindName('D').Text = $desc
-    $card.FindName('Stripe').Background = Brush $color
-    [void]$script:FixList.Children.Add($card)
-    $card
+function New-FixTile($grid, [string]$kind, [string]$title, [string]$desc, [string]$color) {
+    $tile = New-Xaml $AppTileXaml
+    $tile.FindName('K').Text = $kind; $tile.FindName('T').Text = $title; $tile.FindName('D').Text = $desc
+    $tile.FindName('Dot').Fill = Brush $color
+    [void]$grid.Children.Add($tile)
+    $tile
 }
 function Build-Fixes {
     $script:FixList.Children.Clear()
-    Add-FixHeader 'ЧАСТЫЕ ПРОБЛЕМЫ'
+    $grid = Add-FixGroup 'ЧАСТЫЕ ПРОБЛЕМЫ'
     foreach ($f in $FixCatalog) {
-        $card = New-FixCard $(if ($f.Reboot) { 'НУЖНА ПЕРЕЗАГРУЗКА' } else { 'ИСПРАВЛЕНИЕ' }) $f.Title $f.Desc '#4F8CFF'
-        [void]$card.FindName('Btns').Children.Add((New-FixButton 'Исправить' $f { Confirm-Fix $this.Tag } 'Primary'))
+        $tile = New-FixTile $grid $(if ($f.Reboot) { 'НУЖНА ПЕРЕЗАГРУЗКА' } else { 'ИСПРАВЛЕНИЕ' }) $f.Title $f.Desc '#4F8CFF'
+        [void]$tile.FindName('Btns').Children.Add((New-AppButton 'Исправить' $f 'Primary' { Confirm-Fix $this.Tag }))
     }
-    Add-FixHeader 'РЕМОНТ WINDOWS'
+    $grid = Add-FixGroup 'РЕМОНТ WINDOWS'
     foreach ($r in $RepairCatalog) {
-        $card = New-FixCard 'ДОЛГО' $r.Title $r.Desc '#D29922'
-        [void]$card.FindName('Btns').Children.Add((New-FixButton 'Запустить' $r.Cmd { Start-Process cmd.exe -ArgumentList "/c $($this.Tag)" } 'Primary'))
+        $tile = New-FixTile $grid 'ДОЛГО' $r.Title $r.Desc '#D29922'
+        [void]$tile.FindName('Btns').Children.Add((New-AppButton 'Запустить' $r.Cmd 'Primary' { Start-Process cmd.exe -ArgumentList "/c $($this.Tag)" }))
     }
-    Add-FixHeader 'DNS-СЕРВЕР'
-    $card = New-FixCard 'СЕТЬ' 'Сменить DNS' 'DNS превращает адреса сайтов в IP. Свой DNS иногда открывает сайты быстрее, а AdGuard ещё и режет рекламу. Прежний DNS сохранится в «Истории».' '#3FB950'
-    $script:DnsLabel = $card.FindName('A'); $script:DnsLabel.Foreground = Brush '#7FA8FF'; $script:DnsLabel.Text = 'Проверяю текущий DNS…'
+    # одна широкая плитка: четыре кнопки DNS в узкую не влезут
+    $grid = Add-FixGroup 'DNS-СЕРВЕР' 1
+    $card = New-FixTile $grid 'СЕТЬ' 'Сменить DNS' 'DNS превращает адреса сайтов в IP. Свой DNS иногда открывает сайты быстрее, а AdGuard ещё и режет рекламу. Прежний DNS сохранится в «Истории».' '#3FB950'
+    $script:DnsLabel = $card.FindName('K'); $script:DnsLabel.Foreground = Brush '#7FA8FF'; $script:DnsLabel.Text = 'Проверяю текущий DNS…'
     # Get-NetAdapter занимает до секунды — читаем в фоне
     Start-Bg 'dns' @('Get-DnsLabel', 'Get-DnsState', 'Get-DnsAdapters', 'Get-RegRaw', 'Format-RegVal') @{ DnsCatalog = $DnsCatalog } { param($sync) Get-DnsLabel } $null {
         param($s) $script:DnsLabel.Text = $(if ($s.Error) { 'Не удалось прочитать текущий DNS' } else { "$($s.Result[0])" })
     }
     $btns = $card.FindName('Btns')
-    foreach ($k in $DnsCatalog.Keys) { [void]$btns.Children.Add((New-FixButton $k $k { Invoke-Dns $this.Tag })) }
-    [void]$btns.Children.Add((New-FixButton 'Автоматически' '' { Invoke-Dns '' }))
-    Add-FixHeader 'КЛАССИЧЕСКИЕ ОКНА WINDOWS'
-    $wrap = New-Object Windows.Controls.WrapPanel
+    foreach ($k in $DnsCatalog.Keys) { [void]$btns.Children.Add((New-AppButton $k $k 'Btn' { Invoke-Dns $this.Tag })) }
+    [void]$btns.Children.Add((New-AppButton 'Автоматически' '' 'Btn' { Invoke-Dns '' }))
+    $grid = Add-FixGroup 'КЛАССИЧЕСКИЕ ОКНА WINDOWS'
     foreach ($k in $ClassicLinks.Keys) {
-        $b = New-FixButton $k $ClassicLinks[$k] { Start-Process $this.Tag }
-        $b.Margin = '0,0,8,8'; $b.MinWidth = 200; $b.HorizontalAlignment = 'Left'
-        [void]$wrap.Children.Add($b)
+        $b = New-AppButton $k $ClassicLinks[$k] 'Btn' { Start-Process $this.Tag }
+        $b.Margin = '0,0,10,10'; $b.Padding = '12,8'; $b.HorizontalAlignment = 'Stretch'
+        [void]$grid.Children.Add($b)
     }
-    [void]$script:FixList.Children.Add($wrap)
     $script:FixBuilt = $true
 }
 #endregion
@@ -2885,6 +2942,10 @@ $script:BtnReboot.Add_Click({ Invoke-Reboot })
 $script:BtnReboot2.Add_Click({ Invoke-Reboot })
 $script:BtnStart.Add_Click({ Start-Wizard })
 $script:BtnManual.Add_Click({ Select-Nav 'Все' })
+# плитки главной: Tag — тег пункта меню
+$script:HomeView.AddHandler([Windows.Controls.Primitives.ButtonBase]::ClickEvent, [Windows.RoutedEventHandler]{
+    param($s, $e) if ($e.OriginalSource.Tag -is [string]) { Select-Nav $e.OriginalSource.Tag }
+})
 $script:WizBack.Add_Click({ Select-Nav 'home' })
 $script:WizNext.Add_Click({ Complete-Wizard })
 $script:BtnLog.Add_Click({ Start-Process explorer.exe $script:DataDir })
