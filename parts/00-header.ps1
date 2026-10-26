@@ -6,7 +6,7 @@
 #>
 param([switch]$Selftest, [string]$Snapshot, [string]$View = 'home')
 
-$script:Version = '0.1.6'   # меняется при каждом релизе (тег vX.Y.Z)
+$script:Version = '0.1.7'   # меняется при каждом релизе (тег vX.Y.Z)
 $ErrorActionPreference = 'Continue'
 $IsAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $IsAdmin -and -not $Selftest -and -not $Snapshot) {
