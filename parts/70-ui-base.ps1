@@ -549,6 +549,14 @@ foreach ($s in 'Toggle', 'Btn', 'Primary', 'Warn', 'Link', 'Seg') { $script:Styl
 $bc = New-Object Windows.Media.BrushConverter
 function Brush([string]$hex) { $bc.ConvertFromString($hex) }
 function New-Xaml([string]$x) { [Windows.Markup.XamlReader]::Parse($x) }
+# логотип как в боковой панели; та же отрисовка в build.ps1 даёт иконку OknoTune.exe и docs/logo.png
+function New-Logo([int]$size) {
+    $b = New-Xaml "<Border xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' Width='$size' Height='$size' CornerRadius='$($size * 9 / 32)' Background='#4F8CFF'><TextBlock Text='&#xE945;' FontFamily='Segoe Fluent Icons, Segoe MDL2 Assets' Foreground='White' FontSize='$($size / 2)' HorizontalAlignment='Center' VerticalAlignment='Center'/></Border>"
+    $b.Measure([Windows.Size]::new($size, $size)); $b.Arrange([Windows.Rect]::new(0, 0, $size, $size))
+    $rtb = New-Object Windows.Media.Imaging.RenderTargetBitmap $size, $size, 96, 96, ([Windows.Media.PixelFormats]::Pbgra32)
+    $rtb.Render($b); $rtb
+}
+$script:Win.Icon = New-Logo 48
 # плитки по две в ряд: у каждой строки своя высота (UniformGrid растянул бы все до самой высокой)
 function Add-Tile2([Windows.Controls.Grid]$grid, $el) {
     $i = $grid.Children.Count
