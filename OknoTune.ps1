@@ -1129,6 +1129,44 @@ function Get-DriverInfo($sync) {
     if (-not $bad.Count) { $cards.Add(@{ Kind = 'Проверка устройств'; Title = 'Все устройства работают'; Details = 'В Диспетчере устройств нет устройств без драйвера или с ошибкой.'; Buttons = @() }) }
     $cards
 }
+# Карточки «Отключённые устройства» и «Лишние драйверы» для раздела «Очистка»
+function Get-DevCleanCards($sync) {
+    function Step([int]$v, [string]$t) { if ($sync) { $sync.Value = $v; $sync.Text = $t } }
+    $cards = New-Object System.Collections.Generic.List[object]
+    Step 10 'Отключённые устройства…'
+    $ghosts = @(Get-GhostDevices)
+    $cards.Add(@{ Kind = 'Отключённые устройства'; Title = $(if ($ghosts.Count) { "Найдено: $($ghosts.Count)" } else { 'Лишних записей нет' }); Action = 'ghosts'; Items = $ghosts; Buttons = @()
+        Details = 'Флешки, мониторы, телефоны и другие устройства, которые когда-то подключались. Их записи можно убрать: при новом подключении Windows создаст запись заново.' })
+    Step 50 'Хранилище драйверов…'
+    $pkgs = @(try { Get-StaleDrivers } catch {})   # без DISM карточка просто покажет «нет»
+    $old = @($pkgs | Where-Object { $_.Old }).Count
+    $cards.Add(@{ Kind = 'Лишние драйверы'; Title = $(if ($pkgs.Count) { "Найдено: $($pkgs.Count), из них старых версий: $old" } else { 'Лишних драйверов нет' }); Action = 'drivers'; Items = $pkgs; Buttons = @()
+        Details = 'Старые версии драйверов и драйверы устройств, которых сейчас нет. Используемые драйверы Windows удалить не даст.' })
+    $cards
+}
+# Записи устройств, которых сейчас нет в компьютере (как Device Cleanup)
+function Get-GhostDevices {
+    Get-PnpDevice -ErrorAction SilentlyContinue | Where-Object { -not $_.Present } | Sort-Object Class, FriendlyName | ForEach-Object {
+        @{ Id = "$($_.InstanceId)"; Name = $(if ($_.FriendlyName) { "$($_.FriendlyName)" } else { "$($_.InstanceId)" }); Class = "$($_.Class)" }
+    }
+}
+# Пакеты в хранилище драйверов, которые не использует ни одно подключённое устройство (как DriverStoreExplorer).
+# Old = есть более новая версия того же драйвера. Последнюю версию Extension/SoftwareComponent/Printer, фильтров (HSM)
+# и звуковых эффектов (APO) не предлагаем: они работают не через устройство, по ним не видно, нужны ли они.
+function Get-StaleDrivers {
+    $used = @{}
+    Get-CimInstance Win32_PnPSignedDriver -ErrorAction SilentlyContinue | ForEach-Object { if ($_.InfName) { $used["$($_.InfName)".ToLower()] = $true } }
+    Get-WindowsDriver -Online -ErrorAction Stop | Group-Object { "$(Split-Path $_.OriginalFileName -Leaf)|$($_.ProviderName)|$($_.ClassName)" } | ForEach-Object {
+        $sorted = @($_.Group | Sort-Object { try { [version]$_.Version } catch { [version]'0.0' } } -Descending)
+        for ($i = 0; $i -lt $sorted.Count; $i++) {
+            $p = $sorted[$i]
+            if ($used["$($p.Driver)".ToLower()]) { continue }
+            if ($i -eq 0 -and $p.ClassName -in 'Extension', 'SoftwareComponent', 'Printer', 'HSM', 'AudioProcessingObject') { continue }
+            @{ Inf = "$($p.Driver)"; Name = "$(Split-Path $p.OriginalFileName -Leaf)"; Provider = "$($p.ProviderName)"; Class = "$($p.ClassName)"
+                Version = "$($p.Version)"; Date = $p.Date; Old = $i -gt 0 }
+        }
+    } | Sort-Object { -not $_.Old }, Provider, Name
+}
 #endregion
 
 if ($Selftest) {
@@ -1144,6 +1182,8 @@ if ($Selftest) {
         $urls = @($d.Buttons | ForEach-Object { $_[1] }) -join ' '
         '{0,-22} {1,-45} {2,-11} {3}' -f $d.Kind, $d.Title, $(if ($d.Date) { $d.Date.ToString('yyyy-MM-dd') } else { '-' }), $urls
     }
+    "== devclean"
+    foreach ($d in Get-DevCleanCards) { '{0,-22} {1}' -f $d.Kind, $d.Title }
     Initialize-Items
     $script:Items | ForEach-Object { '{0,-40} {1,-13} {2,-7} {3}' -f $_.Id, $_.Cat, $_.Impact, $_.State }
     "items: $($script:Items.Count) of $($script:AllItems.Count)"
@@ -1372,7 +1412,7 @@ $Xaml = @'
      <UniformGrid Columns="3" Margin="0,0,-10,0">
       <Button Style="{StaticResource Tile}" Tag="clean">
        <DockPanel><TextBlock Text="&#xE74D;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="20" Foreground="#7FA8FF" Margin="0,2,14,0" VerticalAlignment="Top"/>
-        <StackPanel><TextBlock Text="Очистка диска" FontSize="14" FontWeight="SemiBold"/><TextBlock Text="Временные файлы, кэш и корзина" FontSize="12" Foreground="#8B93A1" TextWrapping="Wrap" Margin="0,3,0,0"/></StackPanel></DockPanel>
+        <StackPanel><TextBlock Text="Очистка" FontSize="14" FontWeight="SemiBold"/><TextBlock Text="Временные файлы, кэш, старые драйверы" FontSize="12" Foreground="#8B93A1" TextWrapping="Wrap" Margin="0,3,0,0"/></StackPanel></DockPanel>
       </Button>
       <Button Style="{StaticResource Tile}" Tag="fixes">
        <DockPanel><TextBlock Text="&#xE9D9;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="20" Foreground="#7FA8FF" Margin="0,2,14,0" VerticalAlignment="Top"/>
@@ -1389,6 +1429,11 @@ $Xaml = @'
       <Button Style="{StaticResource Tile}" Tag="apps">
        <DockPanel><TextBlock Text="&#xE8F1;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="20" Foreground="#7FA8FF" Margin="0,2,14,0" VerticalAlignment="Top"/>
         <StackPanel><TextBlock Text="Полезные программы" FontSize="14" FontWeight="SemiBold"/><TextBlock Text="Проверенные бесплатные программы" FontSize="12" Foreground="#8B93A1" TextWrapping="Wrap" Margin="0,3,0,0"/></StackPanel></DockPanel>
+      </Button>
+      <!-- не раздел: Tag="restore" обрабатывается отдельно в 90-main -->
+      <Button Style="{StaticResource Tile}" Tag="restore">
+       <DockPanel><TextBlock Text="&#xE74E;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="20" Foreground="#7FA8FF" Margin="0,2,14,0" VerticalAlignment="Top"/>
+        <StackPanel><TextBlock Text="Точка восстановления" FontSize="14" FontWeight="SemiBold"/><TextBlock Text="Создать сейчас, перед экспериментами" FontSize="12" Foreground="#8B93A1" TextWrapping="Wrap" Margin="0,3,0,0"/></StackPanel></DockPanel>
       </Button>
      </UniformGrid>
     </StackPanel>
@@ -1472,8 +1517,8 @@ $Xaml = @'
    <Grid x:Name="CleanView" Visibility="Collapsed">
     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
     <StackPanel Margin="40,30,40,14">
-     <TextBlock Text="Очистка диска" FontSize="26" FontWeight="SemiBold"/>
-     <TextBlock Text="Удаляет временные и ненужные файлы. Документы, фото, загрузки и настройки программ не трогаются." Foreground="#8B93A1" FontSize="13" Margin="0,6,0,0" TextWrapping="Wrap"/>
+     <TextBlock Text="Очистка" FontSize="26" FontWeight="SemiBold"/>
+     <TextBlock Text="Удаляет временные и ненужные файлы, записи отключённых устройств и старые драйверы. Документы, фото, загрузки и настройки программ не трогаются." Foreground="#8B93A1" FontSize="13" Margin="0,6,0,0" TextWrapping="Wrap"/>
      <Border Background="#171B22" BorderBrush="#232831" BorderThickness="1" CornerRadius="14" Padding="24,16" Margin="0,16,0,0" MaxWidth="900" HorizontalAlignment="Stretch">
       <Grid>
        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
@@ -1486,7 +1531,11 @@ $Xaml = @'
      </Border>
     </StackPanel>
     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="40,0,32,12">
-     <Grid x:Name="CleanList" MaxWidth="910" Margin="0,0,-10,0" HorizontalAlignment="Stretch"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions></Grid>
+     <StackPanel MaxWidth="910" HorizontalAlignment="Stretch">
+      <Grid x:Name="CleanList" Margin="0,0,-10,0"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions></Grid>
+      <TextBlock Text="УСТРОЙСТВА И ДРАЙВЕРЫ" FontSize="11" FontWeight="SemiBold" Foreground="#6B7380" Margin="2,14,0,8"/>
+      <Grid x:Name="DevList" Margin="0,0,-10,0"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions></Grid>
+     </StackPanel>
     </ScrollViewer>
     <Border Grid.Row="2" Background="#13161C" BorderBrush="#1E232B" BorderThickness="0,1,0,0" Padding="40,14">
      <Grid>
@@ -1696,7 +1745,7 @@ foreach ($n in 'Nav', 'SysInfo', 'BtnLog', 'HomeView', 'HomeCount', 'HomeBar', '
                'WizardView', 'WizList', 'WizCount', 'WizBack', 'WizNext', 'ListView', 'Heading', 'SubHeading', 'BtnSafe', 'Search', 'SearchHint',
                'ChipPending', 'ChipSafe', 'ChipReboot', 'List', 'HistoryView', 'HistSub', 'HistList', 'BtnHistClear', 'Loading', 'Footer', 'Status', 'BtnReboot', 'BtnReset', 'BtnApply',
                'Overlay', 'OvTitle', 'OvSub', 'OvBody', 'OvProgress', 'OvLeft', 'OvButtons',
-               'CleanView', 'CleanTotal', 'CleanDisk', 'CleanList', 'CleanStatus', 'BtnCleanMgr', 'BtnRescan', 'BtnClean',
+               'CleanView', 'CleanTotal', 'CleanDisk', 'CleanList', 'DevList', 'CleanStatus', 'BtnCleanMgr', 'BtnRescan', 'BtnClean',
                'StartupView', 'SuSummary', 'SuList', 'SuStatus', 'BtnSuRescan', 'BtnSuApply',
                'DriversView', 'DrvList', 'DrvStatus', 'BtnWuDrivers', 'BtnDevMgr', 'BtnDrvRescan', 'AppsView', 'AppsList', 'FixView', 'FixList', 'BtnProfSave', 'BtnProfLoad', 'Busy', 'BusyText', 'BusyBar', 'CleanBar', 'BtnReport') {
     Set-Variable -Scope Script -Name $n -Value $script:Win.FindName($n)
@@ -2099,21 +2148,40 @@ function Show-Review {
     Add-OvButton 'Назад' { Hide-Overlay } $null
     Add-OvButton 'Применить' { Invoke-Changes $script:ReviewChanges ([bool]$script:OvRestore.IsChecked) } $null 'Primary'
 }
+# Возвращает текст ошибки или $null
+function New-RestorePoint([string]$desc) {
+    Write-Log 'Создаю точку восстановления…'; Pump
+    # Windows создаёт максимум одну точку за 24 часа; frequency=0 снимает лимит на время вызова
+    $srKey = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRestore'
+    $freqPrev = Get-RegRaw $srKey 'SystemRestorePointCreationFrequency'
+    $freqSet = $freqPrev -and $freqPrev.Value -ne '0'
+    if ($freqSet) { try { Set-Reg $srKey 'SystemRestorePointCreationFrequency' 0 'DWord' } catch { $freqSet = $false } }
+    $w = $null; $err = $null
+    try { Checkpoint-Computer -Description $desc -RestorePointType MODIFY_SETTINGS -ErrorAction Stop -WarningVariable w -WarningAction SilentlyContinue }
+    catch { $err = $_.Exception.Message }
+    if ($w) { $err = "$w" }
+    if ($freqSet) { try { Set-Reg $srKey 'SystemRestorePointCreationFrequency' $freqPrev.Value $freqPrev.Kind } catch {} }
+    $err
+}
+function Confirm-HomeRestore {
+    Show-Overlay 'Создать точку восстановления?' 'Windows сохранит текущее состояние системы. К нему можно будет вернуться через «Восстановление системы» (rstrui).'
+    Add-OvButton 'Отмена' { Hide-Overlay } $null
+    Add-OvButton 'Создать' { Invoke-HomeRestore } $null 'Primary'
+}
+function Invoke-HomeRestore {
+    Show-Overlay 'Создаю точку восстановления' 'Обычно это занимает до минуты'
+    $script:OvProgress.Visibility = 'Visible'; $script:OvProgress.IsIndeterminate = $true; Pump
+    $err = New-RestorePoint 'OknoTune: вручную'
+    $script:OvProgress.IsIndeterminate = $false
+    if ($err) { Write-Log "Точка восстановления не создана: $err"; Show-Overlay 'Не получилось' "Точка восстановления не создана: $err"; Add-OvText 'Проверьте, что защита системы включена для диска C: (Панель управления → Восстановление → Настройка восстановления системы).' }
+    else { Write-Log 'Точка восстановления создана'; Show-Overlay 'Готово' 'Точка восстановления создана. Откатиться к ней можно через «Восстановление системы» (rstrui).' }
+    Add-OvButton 'Готово' { Hide-Overlay } $null 'Primary'
+}
 function Invoke-Changes($changes, [bool]$restore) {
     Show-Overlay 'Применяю изменения' 'Не закрывайте окно'
     $script:OvProgress.Visibility = 'Visible'; Pump
     if ($restore) {
-        Write-Log 'Создаю точку восстановления…'; Pump
-        # Windows создаёт максимум одну точку за 24 часа; frequency=0 снимает лимит на время вызова
-        $srKey = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRestore'
-        $freqPrev = Get-RegRaw $srKey 'SystemRestorePointCreationFrequency'
-        $freqSet = $freqPrev -and $freqPrev.Value -ne '0'
-        if ($freqSet) { try { Set-Reg $srKey 'SystemRestorePointCreationFrequency' 0 'DWord' } catch { $freqSet = $false } }
-        $w = $null; $err = $null
-        try { Checkpoint-Computer -Description 'OknoTune' -RestorePointType MODIFY_SETTINGS -ErrorAction Stop -WarningVariable w -WarningAction SilentlyContinue }
-        catch { $err = $_.Exception.Message }
-        if ($w) { $err = "$w" }
-        if ($freqSet) { try { Set-Reg $srKey 'SystemRestorePointCreationFrequency' $freqPrev.Value $freqPrev.Kind } catch {} }
+        $err = New-RestorePoint 'OknoTune'
         if ($err -and [Windows.MessageBox]::Show($script:Win, "Точка восстановления не создана:`n$err`n`nПродолжить без неё? Снимок для отката всё равно сохранится.", 'OknoTune', 'YesNo', 'Warning') -ne 'Yes') {
             Write-Log 'Отменено'; Hide-Overlay; return
         }
@@ -2344,6 +2412,7 @@ function Set-CleanSize($c, $bytes) {
 function Update-CleanSizes {
     # обход папок идёт в фоне, размеры появляются по мере подсчёта
     if ($script:BgJobs['clean']) { return }
+    Build-DevClean
     $script:BtnRescan.IsEnabled = $false; $script:BtnClean.IsEnabled = $false
     foreach ($c in $script:CleanItems) { $c.SizeTb.Text = '…'; $c.Bytes = $null }
     # пункты со своей функцией размера (корзина через COM, WinSxS) быстрые — считаем здесь
@@ -2423,6 +2492,63 @@ function Invoke-CleanRun {
     Show-Overlay 'Готово' "Освобождено: $(Format-Size $total). Занятые программами файлы пропущены."
     foreach ($l in $ok) { Add-OvText "✓  $l" '#7EE2A0' 13 '0,0,0,5' }
     Add-OvButton 'Готово' { $script:Overlay.Visibility = 'Collapsed'; Update-CleanSizes } $null 'Primary'
+}
+# Карточки устройств и драйверов под файлами; скан в фоне
+function Build-DevClean {
+    if ($script:BgJobs['devclean']) { return }
+    $script:DevList.Children.Clear(); $script:DevList.RowDefinitions.Clear()
+    Start-Bg 'devclean' @('Get-DevCleanCards', 'Get-GhostDevices', 'Get-StaleDrivers') @{} { param($sync) Get-DevCleanCards $sync } $null {
+        param($s)
+        if ($s.Error) { Write-Log "Устройства и драйверы: $($s.Error)"; return }
+        foreach ($d in @($s.Result)) {
+            $card = New-Xaml $DrvXaml
+            $card.FindName('K').Text = $d.Kind.ToUpper(); $card.FindName('T').Text = $d.Title; $card.FindName('D').Text = $d.Details
+            $card.FindName('Stripe').Background = Brush $(if ($d.Items.Count) { '#D29922' } else { '#3FB950' })
+            if ($d.Items.Count) { [void]$card.FindName('Btns').Children.Add((New-AppButton 'Выбрать и удалить' $d 'Primary' { Show-DrvCleanup $this.Tag })) }
+            Add-Tile2 $script:DevList $card
+        }
+    }
+}
+# Окно со списком галочек: отключённые устройства или лишние драйверы
+function Show-DrvCleanup($d) {
+    $ghosts = $d.Action -eq 'ghosts'
+    Show-Overlay $(if ($ghosts) { 'Отключённые устройства' } else { 'Лишние драйверы' }) $(if ($ghosts) {
+            'Отмеченные записи будут удалены из системы. Подключите устройство снова — Windows установит его заново.'
+        } else { 'Удалённый драйвер не вернуть без установщика. Если устройство подключается редко (принтер, донгл, телефон), оставьте его драйвер.' })
+    if (-not $ghosts) { Add-OvBox 'Сначала удалите отключённые устройства' @('Драйвер, который записан за отключённым устройством, Windows не удалит.', 'Отмечены только старые версии: новая версия того же драйвера остаётся.') '#2A2311' '#6B5418' '#F2CC60' }
+    $boxes = @()
+    foreach ($it in $d.Items) {
+        $cb = New-Object Windows.Controls.CheckBox
+        $cb.Foreground = Brush '#E6E8EB'; $cb.Margin = '0,0,0,6'; $cb.Tag = $it
+        $cb.Content = $(if ($ghosts) { "$($it.Name)   ·   $($it.Class)" } else {
+                "$($it.Provider) — $($it.Name) $($it.Version)$(if ($it.Date) { ' от ' + ([datetime]$it.Date).ToString('dd.MM.yyyy') })   ·   $($it.Class)$(if ($it.Old) { '   ·   старая версия' })" })
+        $cb.IsChecked = $ghosts -or $it.Old
+        [void]$script:OvBody.Children.Add($cb); $boxes += $cb
+    }
+    Add-OvButton 'Отмена' { Hide-Overlay } $null
+    Add-OvButton 'Удалить отмеченное' { Invoke-DrvCleanup $script:DrvCleanAction @($script:DrvCleanBoxes | Where-Object { $_.IsChecked } | ForEach-Object { $_.Tag }) } $null 'Primary'
+    $script:DrvCleanAction = $d.Action; $script:DrvCleanBoxes = $boxes
+}
+function Invoke-DrvCleanup([string]$action, $items) {
+    if (-not $items.Count) { return }
+    Show-Overlay 'Удаляю' 'Не закрывайте окно'
+    $script:OvProgress.Visibility = 'Visible'; Pump
+    if ($action -eq 'drivers') {
+        $err = New-RestorePoint 'OknoTune: драйверы'
+        if ($err) { Write-Log "Точка восстановления не создана: $err" }
+    }
+    $ok = 0; $fail = @(); $i = 0
+    foreach ($it in $items) {
+        $i++; $script:OvProgress.Value = 100 * $i / $items.Count
+        $name = $(if ($action -eq 'ghosts') { $it.Name } else { "$($it.Provider) — $($it.Name) $($it.Version)" })
+        $script:OvSub.Text = $name; Pump
+        # без /force: используемый драйвер pnputil не удалит
+        $out = $(if ($action -eq 'ghosts') { & pnputil.exe /remove-device $it.Id 2>&1 } else { & pnputil.exe /delete-driver $it.Inf 2>&1 })
+        if ($LASTEXITCODE -eq 0) { $ok++; Write-Log "Удалено: $name" } else { $fail += $name; Write-Log "Не удалено: $name — $(($out | Out-String).Trim())" }
+    }
+    Show-Overlay 'Готово' "Удалено: $ok из $($items.Count)."
+    if ($fail.Count) { Add-OvBox 'Не удалось удалить (драйвер используется или занят отключённым устройством; подробности в журнале)' $fail '#2A1416' '#6B2A2E' '#FF7B72' }
+    Add-OvButton 'Готово' { $script:Overlay.Visibility = 'Collapsed'; Build-DevClean } $null 'Primary'
 }
 #endregion
 
@@ -2915,7 +3041,7 @@ function Initialize-Ui {
     Add-NavItem 'Все' 0xE71D 'Все настройки'
     foreach ($c in $Cats.Keys) { if (@($script:Items | Where-Object { $_.Cat -eq $c }).Count) { Add-NavItem $c $Cats[$c] $c } }
     Add-NavHeader 'ИНСТРУМЕНТЫ'
-    Add-NavItem 'clean' 0xE74D 'Очистка диска'
+    Add-NavItem 'clean' 0xE74D 'Очистка'
     Add-NavItem 'startup' 0xE7E8 'Автозагрузка'
     Add-NavItem 'drivers' 0xE772 'Драйверы'
     Add-NavItem 'fixes' 0xE9D9 'Исправления'
@@ -2953,7 +3079,8 @@ $script:BtnStart.Add_Click({ Start-Wizard })
 $script:BtnManual.Add_Click({ Select-Nav 'Все' })
 # плитки главной: Tag — тег пункта меню
 $script:HomeView.AddHandler([Windows.Controls.Primitives.ButtonBase]::ClickEvent, [Windows.RoutedEventHandler]{
-    param($s, $e) if ($e.OriginalSource.Tag -is [string]) { Select-Nav $e.OriginalSource.Tag }
+    param($s, $e) $t = $e.OriginalSource.Tag
+    if ($t -eq 'restore') { Confirm-HomeRestore } elseif ($t -is [string]) { Select-Nav $t }
 })
 $script:WizBack.Add_Click({ Select-Nav 'home' })
 $script:WizNext.Add_Click({ Complete-Wizard })

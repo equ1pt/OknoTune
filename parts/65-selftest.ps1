@@ -11,6 +11,8 @@
         $urls = @($d.Buttons | ForEach-Object { $_[1] }) -join ' '
         '{0,-22} {1,-45} {2,-11} {3}' -f $d.Kind, $d.Title, $(if ($d.Date) { $d.Date.ToString('yyyy-MM-dd') } else { '-' }), $urls
     }
+    "== devclean"
+    foreach ($d in Get-DevCleanCards) { '{0,-22} {1}' -f $d.Kind, $d.Title }
     Initialize-Items
     $script:Items | ForEach-Object { '{0,-40} {1,-13} {2,-7} {3}' -f $_.Id, $_.Cat, $_.Impact, $_.State }
     "items: $($script:Items.Count) of $($script:AllItems.Count)"

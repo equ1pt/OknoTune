@@ -7,7 +7,7 @@
     Add-NavItem 'Все' 0xE71D 'Все настройки'
     foreach ($c in $Cats.Keys) { if (@($script:Items | Where-Object { $_.Cat -eq $c }).Count) { Add-NavItem $c $Cats[$c] $c } }
     Add-NavHeader 'ИНСТРУМЕНТЫ'
-    Add-NavItem 'clean' 0xE74D 'Очистка диска'
+    Add-NavItem 'clean' 0xE74D 'Очистка'
     Add-NavItem 'startup' 0xE7E8 'Автозагрузка'
     Add-NavItem 'drivers' 0xE772 'Драйверы'
     Add-NavItem 'fixes' 0xE9D9 'Исправления'
@@ -45,7 +45,8 @@ $script:BtnStart.Add_Click({ Start-Wizard })
 $script:BtnManual.Add_Click({ Select-Nav 'Все' })
 # плитки главной: Tag — тег пункта меню
 $script:HomeView.AddHandler([Windows.Controls.Primitives.ButtonBase]::ClickEvent, [Windows.RoutedEventHandler]{
-    param($s, $e) if ($e.OriginalSource.Tag -is [string]) { Select-Nav $e.OriginalSource.Tag }
+    param($s, $e) $t = $e.OriginalSource.Tag
+    if ($t -eq 'restore') { Confirm-HomeRestore } elseif ($t -is [string]) { Select-Nav $t }
 })
 $script:WizBack.Add_Click({ Select-Nav 'home' })
 $script:WizNext.Add_Click({ Complete-Wizard })

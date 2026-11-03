@@ -84,4 +84,42 @@ function Get-DriverInfo($sync) {
     if (-not $bad.Count) { $cards.Add(@{ Kind = 'Проверка устройств'; Title = 'Все устройства работают'; Details = 'В Диспетчере устройств нет устройств без драйвера или с ошибкой.'; Buttons = @() }) }
     $cards
 }
+# Карточки «Отключённые устройства» и «Лишние драйверы» для раздела «Очистка»
+function Get-DevCleanCards($sync) {
+    function Step([int]$v, [string]$t) { if ($sync) { $sync.Value = $v; $sync.Text = $t } }
+    $cards = New-Object System.Collections.Generic.List[object]
+    Step 10 'Отключённые устройства…'
+    $ghosts = @(Get-GhostDevices)
+    $cards.Add(@{ Kind = 'Отключённые устройства'; Title = $(if ($ghosts.Count) { "Найдено: $($ghosts.Count)" } else { 'Лишних записей нет' }); Action = 'ghosts'; Items = $ghosts; Buttons = @()
+        Details = 'Флешки, мониторы, телефоны и другие устройства, которые когда-то подключались. Их записи можно убрать: при новом подключении Windows создаст запись заново.' })
+    Step 50 'Хранилище драйверов…'
+    $pkgs = @(try { Get-StaleDrivers } catch {})   # без DISM карточка просто покажет «нет»
+    $old = @($pkgs | Where-Object { $_.Old }).Count
+    $cards.Add(@{ Kind = 'Лишние драйверы'; Title = $(if ($pkgs.Count) { "Найдено: $($pkgs.Count), из них старых версий: $old" } else { 'Лишних драйверов нет' }); Action = 'drivers'; Items = $pkgs; Buttons = @()
+        Details = 'Старые версии драйверов и драйверы устройств, которых сейчас нет. Используемые драйверы Windows удалить не даст.' })
+    $cards
+}
+# Записи устройств, которых сейчас нет в компьютере (как Device Cleanup)
+function Get-GhostDevices {
+    Get-PnpDevice -ErrorAction SilentlyContinue | Where-Object { -not $_.Present } | Sort-Object Class, FriendlyName | ForEach-Object {
+        @{ Id = "$($_.InstanceId)"; Name = $(if ($_.FriendlyName) { "$($_.FriendlyName)" } else { "$($_.InstanceId)" }); Class = "$($_.Class)" }
+    }
+}
+# Пакеты в хранилище драйверов, которые не использует ни одно подключённое устройство (как DriverStoreExplorer).
+# Old = есть более новая версия того же драйвера. Последнюю версию Extension/SoftwareComponent/Printer, фильтров (HSM)
+# и звуковых эффектов (APO) не предлагаем: они работают не через устройство, по ним не видно, нужны ли они.
+function Get-StaleDrivers {
+    $used = @{}
+    Get-CimInstance Win32_PnPSignedDriver -ErrorAction SilentlyContinue | ForEach-Object { if ($_.InfName) { $used["$($_.InfName)".ToLower()] = $true } }
+    Get-WindowsDriver -Online -ErrorAction Stop | Group-Object { "$(Split-Path $_.OriginalFileName -Leaf)|$($_.ProviderName)|$($_.ClassName)" } | ForEach-Object {
+        $sorted = @($_.Group | Sort-Object { try { [version]$_.Version } catch { [version]'0.0' } } -Descending)
+        for ($i = 0; $i -lt $sorted.Count; $i++) {
+            $p = $sorted[$i]
+            if ($used["$($p.Driver)".ToLower()]) { continue }
+            if ($i -eq 0 -and $p.ClassName -in 'Extension', 'SoftwareComponent', 'Printer', 'HSM', 'AudioProcessingObject') { continue }
+            @{ Inf = "$($p.Driver)"; Name = "$(Split-Path $p.OriginalFileName -Leaf)"; Provider = "$($p.ProviderName)"; Class = "$($p.ClassName)"
+                Version = "$($p.Version)"; Date = $p.Date; Old = $i -gt 0 }
+        }
+    } | Sort-Object { -not $_.Old }, Provider, Name
+}
 #endregion

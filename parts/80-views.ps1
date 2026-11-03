@@ -246,21 +246,40 @@ function Show-Review {
     Add-OvButton 'Назад' { Hide-Overlay } $null
     Add-OvButton 'Применить' { Invoke-Changes $script:ReviewChanges ([bool]$script:OvRestore.IsChecked) } $null 'Primary'
 }
+# Возвращает текст ошибки или $null
+function New-RestorePoint([string]$desc) {
+    Write-Log 'Создаю точку восстановления…'; Pump
+    # Windows создаёт максимум одну точку за 24 часа; frequency=0 снимает лимит на время вызова
+    $srKey = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRestore'
+    $freqPrev = Get-RegRaw $srKey 'SystemRestorePointCreationFrequency'
+    $freqSet = $freqPrev -and $freqPrev.Value -ne '0'
+    if ($freqSet) { try { Set-Reg $srKey 'SystemRestorePointCreationFrequency' 0 'DWord' } catch { $freqSet = $false } }
+    $w = $null; $err = $null
+    try { Checkpoint-Computer -Description $desc -RestorePointType MODIFY_SETTINGS -ErrorAction Stop -WarningVariable w -WarningAction SilentlyContinue }
+    catch { $err = $_.Exception.Message }
+    if ($w) { $err = "$w" }
+    if ($freqSet) { try { Set-Reg $srKey 'SystemRestorePointCreationFrequency' $freqPrev.Value $freqPrev.Kind } catch {} }
+    $err
+}
+function Confirm-HomeRestore {
+    Show-Overlay 'Создать точку восстановления?' 'Windows сохранит текущее состояние системы. К нему можно будет вернуться через «Восстановление системы» (rstrui).'
+    Add-OvButton 'Отмена' { Hide-Overlay } $null
+    Add-OvButton 'Создать' { Invoke-HomeRestore } $null 'Primary'
+}
+function Invoke-HomeRestore {
+    Show-Overlay 'Создаю точку восстановления' 'Обычно это занимает до минуты'
+    $script:OvProgress.Visibility = 'Visible'; $script:OvProgress.IsIndeterminate = $true; Pump
+    $err = New-RestorePoint 'OknoTune: вручную'
+    $script:OvProgress.IsIndeterminate = $false
+    if ($err) { Write-Log "Точка восстановления не создана: $err"; Show-Overlay 'Не получилось' "Точка восстановления не создана: $err"; Add-OvText 'Проверьте, что защита системы включена для диска C: (Панель управления → Восстановление → Настройка восстановления системы).' }
+    else { Write-Log 'Точка восстановления создана'; Show-Overlay 'Готово' 'Точка восстановления создана. Откатиться к ней можно через «Восстановление системы» (rstrui).' }
+    Add-OvButton 'Готово' { Hide-Overlay } $null 'Primary'
+}
 function Invoke-Changes($changes, [bool]$restore) {
     Show-Overlay 'Применяю изменения' 'Не закрывайте окно'
     $script:OvProgress.Visibility = 'Visible'; Pump
     if ($restore) {
-        Write-Log 'Создаю точку восстановления…'; Pump
-        # Windows создаёт максимум одну точку за 24 часа; frequency=0 снимает лимит на время вызова
-        $srKey = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRestore'
-        $freqPrev = Get-RegRaw $srKey 'SystemRestorePointCreationFrequency'
-        $freqSet = $freqPrev -and $freqPrev.Value -ne '0'
-        if ($freqSet) { try { Set-Reg $srKey 'SystemRestorePointCreationFrequency' 0 'DWord' } catch { $freqSet = $false } }
-        $w = $null; $err = $null
-        try { Checkpoint-Computer -Description 'OknoTune' -RestorePointType MODIFY_SETTINGS -ErrorAction Stop -WarningVariable w -WarningAction SilentlyContinue }
-        catch { $err = $_.Exception.Message }
-        if ($w) { $err = "$w" }
-        if ($freqSet) { try { Set-Reg $srKey 'SystemRestorePointCreationFrequency' $freqPrev.Value $freqPrev.Kind } catch {} }
+        $err = New-RestorePoint 'OknoTune'
         if ($err -and [Windows.MessageBox]::Show($script:Win, "Точка восстановления не создана:`n$err`n`nПродолжить без неё? Снимок для отката всё равно сохранится.", 'OknoTune', 'YesNo', 'Warning') -ne 'Yes') {
             Write-Log 'Отменено'; Hide-Overlay; return
         }

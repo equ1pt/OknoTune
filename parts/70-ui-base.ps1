@@ -215,7 +215,7 @@ $Xaml = @'
      <UniformGrid Columns="3" Margin="0,0,-10,0">
       <Button Style="{StaticResource Tile}" Tag="clean">
        <DockPanel><TextBlock Text="&#xE74D;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="20" Foreground="#7FA8FF" Margin="0,2,14,0" VerticalAlignment="Top"/>
-        <StackPanel><TextBlock Text="Очистка диска" FontSize="14" FontWeight="SemiBold"/><TextBlock Text="Временные файлы, кэш и корзина" FontSize="12" Foreground="#8B93A1" TextWrapping="Wrap" Margin="0,3,0,0"/></StackPanel></DockPanel>
+        <StackPanel><TextBlock Text="Очистка" FontSize="14" FontWeight="SemiBold"/><TextBlock Text="Временные файлы, кэш, старые драйверы" FontSize="12" Foreground="#8B93A1" TextWrapping="Wrap" Margin="0,3,0,0"/></StackPanel></DockPanel>
       </Button>
       <Button Style="{StaticResource Tile}" Tag="fixes">
        <DockPanel><TextBlock Text="&#xE9D9;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="20" Foreground="#7FA8FF" Margin="0,2,14,0" VerticalAlignment="Top"/>
@@ -232,6 +232,11 @@ $Xaml = @'
       <Button Style="{StaticResource Tile}" Tag="apps">
        <DockPanel><TextBlock Text="&#xE8F1;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="20" Foreground="#7FA8FF" Margin="0,2,14,0" VerticalAlignment="Top"/>
         <StackPanel><TextBlock Text="Полезные программы" FontSize="14" FontWeight="SemiBold"/><TextBlock Text="Проверенные бесплатные программы" FontSize="12" Foreground="#8B93A1" TextWrapping="Wrap" Margin="0,3,0,0"/></StackPanel></DockPanel>
+      </Button>
+      <!-- не раздел: Tag="restore" обрабатывается отдельно в 90-main -->
+      <Button Style="{StaticResource Tile}" Tag="restore">
+       <DockPanel><TextBlock Text="&#xE74E;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="20" Foreground="#7FA8FF" Margin="0,2,14,0" VerticalAlignment="Top"/>
+        <StackPanel><TextBlock Text="Точка восстановления" FontSize="14" FontWeight="SemiBold"/><TextBlock Text="Создать сейчас, перед экспериментами" FontSize="12" Foreground="#8B93A1" TextWrapping="Wrap" Margin="0,3,0,0"/></StackPanel></DockPanel>
       </Button>
      </UniformGrid>
     </StackPanel>
@@ -315,8 +320,8 @@ $Xaml = @'
    <Grid x:Name="CleanView" Visibility="Collapsed">
     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
     <StackPanel Margin="40,30,40,14">
-     <TextBlock Text="Очистка диска" FontSize="26" FontWeight="SemiBold"/>
-     <TextBlock Text="Удаляет временные и ненужные файлы. Документы, фото, загрузки и настройки программ не трогаются." Foreground="#8B93A1" FontSize="13" Margin="0,6,0,0" TextWrapping="Wrap"/>
+     <TextBlock Text="Очистка" FontSize="26" FontWeight="SemiBold"/>
+     <TextBlock Text="Удаляет временные и ненужные файлы, записи отключённых устройств и старые драйверы. Документы, фото, загрузки и настройки программ не трогаются." Foreground="#8B93A1" FontSize="13" Margin="0,6,0,0" TextWrapping="Wrap"/>
      <Border Background="#171B22" BorderBrush="#232831" BorderThickness="1" CornerRadius="14" Padding="24,16" Margin="0,16,0,0" MaxWidth="900" HorizontalAlignment="Stretch">
       <Grid>
        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
@@ -329,7 +334,11 @@ $Xaml = @'
      </Border>
     </StackPanel>
     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="40,0,32,12">
-     <Grid x:Name="CleanList" MaxWidth="910" Margin="0,0,-10,0" HorizontalAlignment="Stretch"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions></Grid>
+     <StackPanel MaxWidth="910" HorizontalAlignment="Stretch">
+      <Grid x:Name="CleanList" Margin="0,0,-10,0"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions></Grid>
+      <TextBlock Text="УСТРОЙСТВА И ДРАЙВЕРЫ" FontSize="11" FontWeight="SemiBold" Foreground="#6B7380" Margin="2,14,0,8"/>
+      <Grid x:Name="DevList" Margin="0,0,-10,0"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions></Grid>
+     </StackPanel>
     </ScrollViewer>
     <Border Grid.Row="2" Background="#13161C" BorderBrush="#1E232B" BorderThickness="0,1,0,0" Padding="40,14">
      <Grid>
@@ -539,7 +548,7 @@ foreach ($n in 'Nav', 'SysInfo', 'BtnLog', 'HomeView', 'HomeCount', 'HomeBar', '
                'WizardView', 'WizList', 'WizCount', 'WizBack', 'WizNext', 'ListView', 'Heading', 'SubHeading', 'BtnSafe', 'Search', 'SearchHint',
                'ChipPending', 'ChipSafe', 'ChipReboot', 'List', 'HistoryView', 'HistSub', 'HistList', 'BtnHistClear', 'Loading', 'Footer', 'Status', 'BtnReboot', 'BtnReset', 'BtnApply',
                'Overlay', 'OvTitle', 'OvSub', 'OvBody', 'OvProgress', 'OvLeft', 'OvButtons',
-               'CleanView', 'CleanTotal', 'CleanDisk', 'CleanList', 'CleanStatus', 'BtnCleanMgr', 'BtnRescan', 'BtnClean',
+               'CleanView', 'CleanTotal', 'CleanDisk', 'CleanList', 'DevList', 'CleanStatus', 'BtnCleanMgr', 'BtnRescan', 'BtnClean',
                'StartupView', 'SuSummary', 'SuList', 'SuStatus', 'BtnSuRescan', 'BtnSuApply',
                'DriversView', 'DrvList', 'DrvStatus', 'BtnWuDrivers', 'BtnDevMgr', 'BtnDrvRescan', 'AppsView', 'AppsList', 'FixView', 'FixList', 'BtnProfSave', 'BtnProfLoad', 'Busy', 'BusyText', 'BusyBar', 'CleanBar', 'BtnReport') {
     Set-Variable -Scope Script -Name $n -Value $script:Win.FindName($n)

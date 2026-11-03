@@ -29,6 +29,7 @@ function Set-CleanSize($c, $bytes) {
 function Update-CleanSizes {
     # обход папок идёт в фоне, размеры появляются по мере подсчёта
     if ($script:BgJobs['clean']) { return }
+    Build-DevClean
     $script:BtnRescan.IsEnabled = $false; $script:BtnClean.IsEnabled = $false
     foreach ($c in $script:CleanItems) { $c.SizeTb.Text = '…'; $c.Bytes = $null }
     # пункты со своей функцией размера (корзина через COM, WinSxS) быстрые — считаем здесь
@@ -108,5 +109,62 @@ function Invoke-CleanRun {
     Show-Overlay 'Готово' "Освобождено: $(Format-Size $total). Занятые программами файлы пропущены."
     foreach ($l in $ok) { Add-OvText "✓  $l" '#7EE2A0' 13 '0,0,0,5' }
     Add-OvButton 'Готово' { $script:Overlay.Visibility = 'Collapsed'; Update-CleanSizes } $null 'Primary'
+}
+# Карточки устройств и драйверов под файлами; скан в фоне
+function Build-DevClean {
+    if ($script:BgJobs['devclean']) { return }
+    $script:DevList.Children.Clear(); $script:DevList.RowDefinitions.Clear()
+    Start-Bg 'devclean' @('Get-DevCleanCards', 'Get-GhostDevices', 'Get-StaleDrivers') @{} { param($sync) Get-DevCleanCards $sync } $null {
+        param($s)
+        if ($s.Error) { Write-Log "Устройства и драйверы: $($s.Error)"; return }
+        foreach ($d in @($s.Result)) {
+            $card = New-Xaml $DrvXaml
+            $card.FindName('K').Text = $d.Kind.ToUpper(); $card.FindName('T').Text = $d.Title; $card.FindName('D').Text = $d.Details
+            $card.FindName('Stripe').Background = Brush $(if ($d.Items.Count) { '#D29922' } else { '#3FB950' })
+            if ($d.Items.Count) { [void]$card.FindName('Btns').Children.Add((New-AppButton 'Выбрать и удалить' $d 'Primary' { Show-DrvCleanup $this.Tag })) }
+            Add-Tile2 $script:DevList $card
+        }
+    }
+}
+# Окно со списком галочек: отключённые устройства или лишние драйверы
+function Show-DrvCleanup($d) {
+    $ghosts = $d.Action -eq 'ghosts'
+    Show-Overlay $(if ($ghosts) { 'Отключённые устройства' } else { 'Лишние драйверы' }) $(if ($ghosts) {
+            'Отмеченные записи будут удалены из системы. Подключите устройство снова — Windows установит его заново.'
+        } else { 'Удалённый драйвер не вернуть без установщика. Если устройство подключается редко (принтер, донгл, телефон), оставьте его драйвер.' })
+    if (-not $ghosts) { Add-OvBox 'Сначала удалите отключённые устройства' @('Драйвер, который записан за отключённым устройством, Windows не удалит.', 'Отмечены только старые версии: новая версия того же драйвера остаётся.') '#2A2311' '#6B5418' '#F2CC60' }
+    $boxes = @()
+    foreach ($it in $d.Items) {
+        $cb = New-Object Windows.Controls.CheckBox
+        $cb.Foreground = Brush '#E6E8EB'; $cb.Margin = '0,0,0,6'; $cb.Tag = $it
+        $cb.Content = $(if ($ghosts) { "$($it.Name)   ·   $($it.Class)" } else {
+                "$($it.Provider) — $($it.Name) $($it.Version)$(if ($it.Date) { ' от ' + ([datetime]$it.Date).ToString('dd.MM.yyyy') })   ·   $($it.Class)$(if ($it.Old) { '   ·   старая версия' })" })
+        $cb.IsChecked = $ghosts -or $it.Old
+        [void]$script:OvBody.Children.Add($cb); $boxes += $cb
+    }
+    Add-OvButton 'Отмена' { Hide-Overlay } $null
+    Add-OvButton 'Удалить отмеченное' { Invoke-DrvCleanup $script:DrvCleanAction @($script:DrvCleanBoxes | Where-Object { $_.IsChecked } | ForEach-Object { $_.Tag }) } $null 'Primary'
+    $script:DrvCleanAction = $d.Action; $script:DrvCleanBoxes = $boxes
+}
+function Invoke-DrvCleanup([string]$action, $items) {
+    if (-not $items.Count) { return }
+    Show-Overlay 'Удаляю' 'Не закрывайте окно'
+    $script:OvProgress.Visibility = 'Visible'; Pump
+    if ($action -eq 'drivers') {
+        $err = New-RestorePoint 'OknoTune: драйверы'
+        if ($err) { Write-Log "Точка восстановления не создана: $err" }
+    }
+    $ok = 0; $fail = @(); $i = 0
+    foreach ($it in $items) {
+        $i++; $script:OvProgress.Value = 100 * $i / $items.Count
+        $name = $(if ($action -eq 'ghosts') { $it.Name } else { "$($it.Provider) — $($it.Name) $($it.Version)" })
+        $script:OvSub.Text = $name; Pump
+        # без /force: используемый драйвер pnputil не удалит
+        $out = $(if ($action -eq 'ghosts') { & pnputil.exe /remove-device $it.Id 2>&1 } else { & pnputil.exe /delete-driver $it.Inf 2>&1 })
+        if ($LASTEXITCODE -eq 0) { $ok++; Write-Log "Удалено: $name" } else { $fail += $name; Write-Log "Не удалено: $name — $(($out | Out-String).Trim())" }
+    }
+    Show-Overlay 'Готово' "Удалено: $ok из $($items.Count)."
+    if ($fail.Count) { Add-OvBox 'Не удалось удалить (драйвер используется или занят отключённым устройством; подробности в журнале)' $fail '#2A1416' '#6B2A2E' '#FF7B72' }
+    Add-OvButton 'Готово' { $script:Overlay.Visibility = 'Collapsed'; Build-DevClean } $null 'Primary'
 }
 #endregion
